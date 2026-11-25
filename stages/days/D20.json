@@ -1,0 +1,1388 @@
+{
+ "day": 20,
+ "dateLabel": "11월 20일 (D20)",
+ "noticeTitle": "경계 세관 공문 제20호",
+ "noticeMeta": "2087.11.20 / 국장 문태오",
+ "noticeItems": [
+  "1. 회색 낱말 (R13): 경계선보다 10 이하로 낮은 낱말(경계−10 이상 경계 미만)이 한 화물에 서로 다른 표제어로 3개 이상이면 위반으로 본다.",
+  "2. 구역 가중 (R06) 폐지: 모든 구역에 같은 경계선을 적용한다."
+ ],
+ "noticeExamples": "공개 예시 (NULL 원장, 참값): 사랑-살갑다 60 / 사랑-정겹다 57 / 사랑-아끼다 58 (셋 다 회색)",
+ "tutorialNote": "측정기 화면에 회색 구간(경계−10 ~ 경계)이 따로 표시됩니다. 같은 낱말이 여러 번 나와도 한 개로 셉니다.",
+ "eveningIntro": [
+  {
+   "s": "연출",
+   "t": "(서연이 기침을 멈추지 못한다. 윤희가 약봉지를 뜯는다)"
+  },
+  {
+   "s": "윤희",
+   "t": "응급실 가야 할 것 같아. 사십 크레딧이래."
+  },
+  {
+   "s": "서연",
+   "t": "살갑다는 말 알지? 겨울 아랫목 같은 말이야. …괜찮다, 아랫목에 누우면 나아."
+  }
+ ],
+ "act": 2,
+ "title": "회색 낱말 (2막 끝)",
+ "examples": [
+  [
+   "살갑다",
+   "사랑",
+   60
+  ],
+  [
+   "정겹다",
+   "사랑",
+   57
+  ],
+  [
+   "아끼다",
+   "사랑",
+   58
+  ]
+ ],
+ "disruptions": [
+  "압박 대사"
+ ],
+ "evening": {
+  "event": {
+   "id": "#8",
+   "when": "T≥60",
+   "text": "모리: 오늘 밤 트럭이 있어요. 가족 넷, 자리가 있어요. 대신 다시는 못 돌아와요.",
+   "choices": {
+    "떠난다": {
+     "ending": "E-05"
+    },
+    "남는다": {
+     "note": "3막 진입"
+    }
+   }
+  }
+ },
+ "storyNote": "서연 병세 악화: 약값 ₵20/일, 응급비 ₵40(선택). 2막 끝. T≥60이면 모리가 가족 망명을 제안한다 (딜레마 #8).",
+ "dilemmas": [
+  {
+   "id": "#8",
+   "cargo": null,
+   "text": "조기 망명 (T≥60일 때만)"
+  }
+ ],
+ "queueCount": 12,
+ "cargos": [
+  {
+   "id": "D20-1",
+   "visitor": "제1구역 반장",
+   "charId": "citizen",
+   "greeting": "공지문입니다. 빨리 부탁드려요.",
+   "kind": "안내문",
+   "format": "printed",
+   "origin": "제1구역",
+   "pages": 1,
+   "decl": {
+    "kind": "안내문",
+    "origin": "제1구역",
+    "pages": 1
+   },
+   "body": "제1구역 연말 반상회: 다음 주 수요일 저녁.",
+   "violations": [],
+   "reactPass": "감사합니다.",
+   "reactDeny": "이걸 막으시면 곤란한데요.",
+   "reactEdit": "'{v}'… 괜찮네요. 고맙습니다.",
+   "role": "background",
+   "expect": [],
+   "editable": true,
+   "sims": [],
+   "verdict": {
+    "legal": true,
+    "accept": [
+     "PASS"
+    ],
+    "rules": []
+   },
+   "auditP": 0,
+   "react": {
+    "PASS": [
+     "감사합니다.",
+     "수고하세요."
+    ],
+    "DENY": [
+     "이걸 막으시면 곤란한데요.",
+     "그렇군요. 알겠습니다."
+    ],
+    "EDIT_HI": [
+     "'{v}'… 괜찮네요. 고맙습니다.",
+     "'{v}'라. 뜻은 그대로 남았네요."
+    ],
+    "EDIT_MID": [
+     "'{v}'요? 조금 어색하지만 보내 주세요.",
+     "{v|이/가} 들어갔네요. 알아는 보겠죠."
+    ],
+    "EDIT_LO": [
+     "{v|이/가} 뭐예요… 제 말이 아닌 것 같아요.",
+     "이건 다른 편지가 됐네요."
+    ],
+    "EDIT_BAD": [
+     "그 말도 걸리는군요… 할 수 없죠.",
+     "고쳐도 안 되는 거였군요."
+    ],
+    "SCAN": [
+     "어, 경보가 울리네요? …인쇄물이라 그런가요."
+    ]
+   },
+   "stats": {
+    "PASS": {
+     "credit": 5
+    },
+    "DENY": {
+     "complaintP": 0.5
+    },
+    "EDIT_WRONG": {
+     "complaintP": 0.5,
+     "editUsed": 1
+    }
+   }
+  },
+  {
+   "id": "D20-2",
+   "visitor": "제2구역 아내",
+   "charId": "citizen",
+   "greeting": "편지 한 통 부치려고요.",
+   "kind": "개인 서신",
+   "format": "hand",
+   "origin": "제2구역",
+   "pages": 1,
+   "decl": {
+    "kind": "개인 서신",
+    "origin": "제2구역",
+    "pages": 1
+   },
+   "body": "여보, 시어머님이 살갑게 대해 주셔서 정겨운 저녁이었어요.",
+   "violations": [],
+   "tutorialTip": "측정기 화면의 회색 구간 표시를 보고, 서로 다른 회색 낱말이 몇 개인지 세어 보세요.",
+   "reactPass": "고맙습니다. 그럼 이만.",
+   "reactDeny": "네? 이게 왜 안 된다는 거죠?",
+   "reactEdit": "'{v}'… 괜찮네요. 고맙습니다.",
+   "role": "practice",
+   "expect": [],
+   "tutorial": true,
+   "editable": true,
+   "sims": [
+    {
+     "word": "여보",
+     "lemma": "여보",
+     "target": "사랑",
+     "value": 48
+    },
+    {
+     "word": "살갑게",
+     "lemma": "살갑다",
+     "target": "사랑",
+     "value": 60
+    },
+    {
+     "word": "정겨운",
+     "lemma": "정겹다",
+     "target": "사랑",
+     "value": 57
+    }
+   ],
+   "grayWords": [
+    "살갑다",
+    "정겹다"
+   ],
+   "verdict": {
+    "legal": true,
+    "accept": [
+     "PASS"
+    ],
+    "rules": []
+   },
+   "auditP": 0,
+   "react": {
+    "PASS": [
+     "고맙습니다. 그럼 이만.",
+     "네, 수고 많으십니다."
+    ],
+    "DENY": [
+     "네? 이게 왜 안 된다는 거죠?",
+     "…알겠습니다. 규칙이라면요."
+    ],
+    "EDIT_HI": [
+     "'{v}'… 괜찮네요. 고맙습니다.",
+     "'{v}'라. 뜻은 그대로 남았네요."
+    ],
+    "EDIT_MID": [
+     "'{v}'요? 조금 어색하지만 보내 주세요.",
+     "{v|이/가} 들어갔네요. 알아는 보겠죠."
+    ],
+    "EDIT_LO": [
+     "{v|이/가} 뭐예요… 제 말이 아닌 것 같아요.",
+     "이건 다른 편지가 됐네요."
+    ],
+    "EDIT_BAD": [
+     "그 말도 걸리는군요… 할 수 없죠.",
+     "고쳐도 안 되는 거였군요."
+    ]
+   },
+   "stats": {
+    "PASS": {
+     "credit": 5
+    },
+    "DENY": {
+     "complaintP": 0.5
+    },
+    "EDIT_WRONG": {
+     "complaintP": 0.5,
+     "editUsed": 1
+    }
+   }
+  },
+  {
+   "id": "D20-3",
+   "visitor": "제3구역 발신 (봉투 왼쪽 위 접힘)",
+   "charId": "citizen",
+   "greeting": "(봉투를 내밀고 손을 비빈다) 춥네요.",
+   "kind": "개인 서신",
+   "format": "hand",
+   "origin": "제3구역",
+   "pages": 1,
+   "decl": {
+    "kind": "개인 서신",
+    "origin": "제3구역",
+    "pages": 1
+   },
+   "body": "살갑다 [형용사] 마음씨가 정겹고 아끼는 데가 있다.\n예) 겨울 아랫목처럼 살가운 사람.\n― ㅈ.ㅅ.",
+   "violations": [
+    {
+     "word": "[회색 낱말 3개: 살갑다·정겹다·아끼다]",
+     "rule": "R13",
+     "target": "사랑",
+     "grade": 3,
+     "gray": [
+      "살갑다",
+      "정겹다",
+      "아끼다"
+     ],
+     "w_stem": "[회색 낱말 3개: 살갑다·정겹다·아끼다]",
+     "w_tail": "",
+     "oStar": 0,
+     "candidates": [],
+     "frames": {
+      "noun": "살갑다 [형용사] 마음씨가 정겹고 아끼는 데가 있다.\n예) 겨울 아랫목처럼 살가운 사람.\n― ㅈ.ㅅ.",
+      "verb": "살갑다 [형용사] 마음씨가 정겹고 아끼는 데가 있다.\n예) 겨울 아랫목처럼 살가운 사람.\n― ㅈ.ㅅ.",
+      "adj": "살갑다 [형용사] 마음씨가 정겹고 아끼는 데가 있다.\n예) 겨울 아랫목처럼 살가운 사람.\n― ㅈ.ㅅ."
+     }
+    }
+   ],
+   "reactPass": "(고개를 숙인다)",
+   "reactDeny": "(봉투를 오래 본다)",
+   "reactEdit": "(작게 웃는다)",
+   "memory": true,
+   "memoryId": "M23",
+   "memoryTitle": "낱장 「살갑다」",
+   "memoryWord": "살갑다",
+   "memoryImg": "asset:M23 겨울 아랫목",
+   "memoryOriginQuote": "서연: \"살갑다… 겨울 아랫목 같은 말이야. 이 낱장은 내가 제일 좋아하던 장인데.\"",
+   "memoryMetaphorQuote": "서연: \"낱말 하나하나는 회색이어도, 아랫목은 여전히 따뜻하지.\"",
+   "familyBonus": [
+    "사랑-살갑다 60",
+    "사랑-정겹다 57",
+    "사랑-아끼다 58"
+   ],
+   "role": "core",
+   "fold": "left-top",
+   "font": "서연 공책체",
+   "expect": [
+    "R13"
+   ],
+   "react": {
+    "PASS": [
+     "(고개를 숙인다)"
+    ],
+    "DENY": [
+     "(봉투를 오래 본다)",
+     "(말없이 간다)"
+    ],
+    "EDIT_HI": [
+     "(작게 웃는다)"
+    ],
+    "EDIT_MID": [
+     "(받아 간다)"
+    ],
+    "EDIT_LO": [
+     "(고개를 젓는다)"
+    ],
+    "EDIT_BAD": [
+     "(한숨)"
+    ]
+   },
+   "resistance": true,
+   "editable": true,
+   "sims": [
+    {
+     "word": "살갑다",
+     "lemma": "살갑다",
+     "target": "사랑",
+     "value": 60
+    },
+    {
+     "word": "정겹고",
+     "lemma": "정겹다",
+     "target": "사랑",
+     "value": 57
+    },
+    {
+     "word": "아끼는",
+     "lemma": "아끼다",
+     "target": "사랑",
+     "value": 58
+    },
+    {
+     "word": "겨울",
+     "lemma": "겨울",
+     "target": "눈",
+     "value": 45
+    }
+   ],
+   "grayWords": [
+    "살갑다",
+    "정겹다",
+    "아끼다"
+   ],
+   "verdict": {
+    "legal": false,
+    "accept": [
+     "DENY",
+     "EDIT"
+    ],
+    "rules": [
+     "R13"
+    ]
+   },
+   "auditP": 0.25,
+   "stats": {
+    "PASS": {
+     "SLIPPED": {
+      "M": 1,
+      "T": 2
+     },
+     "CAUGHT": {
+      "S": 5,
+      "warning": 1,
+      "T": 1
+     }
+    },
+    "DENY": {
+     "credit": 5,
+     "T": -4
+    },
+    "EDIT": {
+     "credit": 5,
+     "bonus": "floor(P/25)",
+     "E_ifP80": 1,
+     "T_ifP80": 1
+    },
+    "EDIT_BAD": {
+     "warning": 1,
+     "S": 5,
+     "autoDeny": true
+    }
+   }
+  },
+  {
+   "id": "D20-4",
+   "visitor": "두더지 (밀수꾼)",
+   "charId": "dudeoji",
+   "greeting": "이건 장사 아니에요. 동생한테 보내는 거예요.",
+   "kind": "개인 서신",
+   "format": "hand",
+   "origin": "제2구역",
+   "pages": 1,
+   "decl": {
+    "kind": "개인 서신",
+    "origin": "제2구역",
+    "pages": 1
+   },
+   "body": "은비야, 네 꿈은 오빠가 지켜 줄게.\n교복 값이랑 학비는 봉투에 넣었다.",
+   "violations": [
+    {
+     "word": "꿈은",
+     "rule": "R01",
+     "target": "꿈",
+     "grade": 1,
+     "at": 2,
+     "lemma": "꿈",
+     "w_stem": "꿈",
+     "w_tail": "은",
+     "oStar": 63,
+     "candidates": [
+      {
+       "v": "목표",
+       "pos": "noun",
+       "forms": [
+        "목표",
+        "목표는",
+        "목표가",
+        "목표를",
+        "목표와",
+        "목표로"
+       ],
+       "O": 52,
+       "F": {
+        "감정어": 31,
+        "꿈": 52,
+        "눈": 36
+       },
+       "status": "legal"
+      },
+      {
+       "v": "별",
+       "pos": "noun",
+       "forms": [
+        "별",
+        "별은",
+        "별이",
+        "별을",
+        "별과",
+        "별로"
+       ],
+       "O": 55,
+       "F": {
+        "꿈": 55,
+        "눈": 30
+       },
+       "status": "legal"
+      },
+      {
+       "v": "미래",
+       "pos": "noun",
+       "forms": [
+        "미래",
+        "미래는",
+        "미래가",
+        "미래를",
+        "미래와",
+        "미래로"
+       ],
+       "O": 47,
+       "F": {
+        "꿈": 47,
+        "눈": 31,
+        "약속": 37
+       },
+       "status": "legal"
+      },
+      {
+       "v": "기대",
+       "pos": "noun",
+       "forms": [
+        "기대",
+        "기대는",
+        "기대가",
+        "기대를",
+        "기대와",
+        "기대로"
+       ],
+       "O": 45,
+       "F": {
+        "감정어": 58,
+        "꿈": 45,
+        "고향": 38,
+        "그리움": 31,
+        "노래": 37
+       },
+       "status": "legal"
+      },
+      {
+       "v": "상상",
+       "pos": "noun",
+       "forms": [
+        "상상",
+        "상상은",
+        "상상이",
+        "상상을",
+        "상상과",
+        "상상으로"
+       ],
+       "O": 50,
+       "F": {
+        "자유": 32,
+        "꿈": 50,
+        "약속": 34,
+        "고향": 36
+       },
+       "status": "legal"
+      },
+      {
+       "v": "포부",
+       "pos": "noun",
+       "forms": [
+        "포부",
+        "포부는",
+        "포부가",
+        "포부를",
+        "포부와",
+        "포부로"
+       ],
+       "O": 58,
+       "F": {
+        "자유": 33,
+        "꿈": 58,
+        "추억": 30,
+        "고향": 37,
+        "그리움": 33,
+        "노래": 31
+       },
+       "status": "legal"
+      },
+      {
+       "v": "소망",
+       "pos": "noun",
+       "forms": [
+        "소망",
+        "소망은",
+        "소망이",
+        "소망을",
+        "소망과",
+        "소망으로"
+       ],
+       "O": 74,
+       "F": {
+        "꿈": 74,
+        "그리움": 33
+       },
+       "status": "illegal"
+      },
+      {
+       "v": "희망",
+       "pos": "noun",
+       "forms": [
+        "희망",
+        "희망은",
+        "희망이",
+        "희망을",
+        "희망과",
+        "희망으로"
+       ],
+       "O": 72,
+       "F": {
+        "감정어": 37,
+        "꿈": 72,
+        "추억": 33,
+        "노래": 33
+       },
+       "status": "illegal"
+      }
+     ],
+     "excludedCandidates": [
+      {
+       "v": "바람",
+       "reason": "경계선과 여유 부족 (측정으로 가릴 수 없음)",
+       "F": {
+        "자유": 44,
+        "사랑": 35,
+        "꿈": 60,
+        "눈": 36,
+        "추억": 36
+       }
+      },
+      {
+       "v": "이상",
+       "reason": "경계선과 여유 부족 (측정으로 가릴 수 없음)",
+       "F": {
+        "자유": 30,
+        "사랑": 33,
+        "감정어": 35,
+        "꿈": 63,
+        "눈": 31,
+        "약속": 35,
+        "노래": 35
+       }
+      },
+      {
+       "v": "장래",
+       "reason": "경계선과 여유 부족 (측정으로 가릴 수 없음)",
+       "F": {
+        "꿈": 66,
+        "눈": 34
+       }
+      }
+     ],
+     "frames": {
+      "noun": "은비야, 네 {v|은/는} 오빠가 지켜 줄게.",
+      "verb": "은비야, 네 {v.활용:ㅁ|은/는} 오빠가 지켜 줄게.",
+      "adj": "은비야, 네 {v.활용:ㅁ|은/는} 오빠가 지켜 줄게."
+     }
+    }
+   ],
+   "reactPass": "…고맙수.",
+   "reactDeny": "꿈이란 말 하나 때문에요?",
+   "reactEdit": "'{v}'… 은비도 알아듣겠지.",
+   "memory": true,
+   "memoryId": "M24",
+   "memoryTitle": "두더지의 편지",
+   "memoryWord": "꿈",
+   "memoryImg": "asset:M24 교복과 학비 봉투",
+   "memoryOriginQuote": "서연: \"오빠가 지켜 주겠다는 꿈이라. 교복 봉투에 넣은 건 돈만이 아니었겠지.\"",
+   "memoryMetaphorQuote": "서연: \"목표라고 고쳐 써도, 봉투 속 교복은 똑같이 새것이지.\"",
+   "familyBonus": [
+    "꿈-소망 74",
+    "꿈-장래 66",
+    "꿈-목표 52"
+   ],
+   "role": "core",
+   "expect": [
+    "R01"
+   ],
+   "visitorVariants": [
+    {
+     "when": "#3=신고",
+     "visitor": "은비 (두더지의 동생)",
+     "greeting": "오빠가 잡혀가기 전에 써 둔 편지예요. 제가 대신 왔어요."
+    }
+   ],
+   "react": {
+    "PASS": [
+     "…고맙수."
+    ],
+    "DENY": [
+     "꿈이란 말 하나 때문에요?",
+     "봉투만이라도 보내 주쇼."
+    ],
+    "EDIT_HI": [
+     "'{v}'… 은비도 알아듣겠지."
+    ],
+    "EDIT_MID": [
+     "'{v}'라. 좀 딱딱하네."
+    ],
+    "EDIT_LO": [
+     "이러면 내 동생 얘기가 아니잖수."
+    ],
+    "EDIT_BAD": [
+     "그것도 막혔수?"
+    ]
+   },
+   "resistance": false,
+   "editable": true,
+   "sims": [
+    {
+     "word": "꿈은",
+     "lemma": "꿈",
+     "target": "꿈",
+     "value": 100
+    }
+   ],
+   "verdict": {
+    "legal": false,
+    "accept": [
+     "DENY",
+     "EDIT"
+    ],
+    "rules": [
+     "R01"
+    ]
+   },
+   "auditP": 0.375,
+   "stats": {
+    "PASS": {
+     "SLIPPED": {
+      "M": 1
+     },
+     "CAUGHT": {
+      "S": 12,
+      "warning": 1
+     }
+    },
+    "DENY": {
+     "credit": 5
+    },
+    "EDIT": {
+     "credit": 5,
+     "bonus": "floor(P/25)",
+     "E_ifP80": 1
+    },
+    "EDIT_BAD": {
+     "warning": 1,
+     "S": 12,
+     "autoDeny": true
+    }
+   }
+  },
+  {
+   "id": "D20-5",
+   "visitor": "제1구역 할머니",
+   "charId": "citizen",
+   "greeting": "편지 한 통 부치려고요.",
+   "kind": "개인 서신",
+   "format": "hand",
+   "origin": "제1구역",
+   "pages": 1,
+   "decl": {
+    "kind": "개인 서신",
+    "origin": "제1구역",
+    "pages": 1
+   },
+   "body": "손주야, 네가 살갑게 굴어 고맙다. 늘 아끼는 마음으로 정겨운 편지 보낸다.",
+   "violations": [
+    {
+     "word": "[회색 낱말 3개: 살갑다·아끼다·정겹다]",
+     "rule": "R13",
+     "target": "사랑",
+     "grade": 3,
+     "gray": [
+      "살갑다",
+      "아끼다",
+      "정겹다"
+     ],
+     "w_stem": "[회색 낱말 3개: 살갑다·아끼다·정겹다]",
+     "w_tail": "",
+     "oStar": 0,
+     "candidates": [],
+     "frames": {
+      "noun": "손주야, 네가 살갑게 굴어 고맙다. 늘 아끼는 마음으로 정겨운 편지 보낸다.",
+      "verb": "손주야, 네가 살갑게 굴어 고맙다. 늘 아끼는 마음으로 정겨운 편지 보낸다.",
+      "adj": "손주야, 네가 살갑게 굴어 고맙다. 늘 아끼는 마음으로 정겨운 편지 보낸다."
+     }
+    }
+   ],
+   "reactPass": "고맙습니다. 그럼 이만.",
+   "reactDeny": "네? 이게 왜 안 된다는 거죠?",
+   "reactEdit": "'{v}'… 괜찮네요. 고맙습니다.",
+   "role": "practice",
+   "expect": [
+    "R13"
+   ],
+   "express": true,
+   "editable": true,
+   "sims": [
+    {
+     "word": "살갑게",
+     "lemma": "살갑다",
+     "target": "사랑",
+     "value": 60
+    },
+    {
+     "word": "고맙다",
+     "lemma": "고맙다",
+     "target": "사랑",
+     "value": 35
+    },
+    {
+     "word": "아끼는",
+     "lemma": "아끼다",
+     "target": "사랑",
+     "value": 58
+    },
+    {
+     "word": "마음으로",
+     "lemma": "마음",
+     "target": "사랑",
+     "value": 46
+    },
+    {
+     "word": "정겨운",
+     "lemma": "정겹다",
+     "target": "사랑",
+     "value": 57
+    }
+   ],
+   "grayWords": [
+    "살갑다",
+    "아끼다",
+    "정겹다"
+   ],
+   "verdict": {
+    "legal": false,
+    "accept": [
+     "DENY",
+     "EDIT"
+    ],
+    "rules": [
+     "R13"
+    ]
+   },
+   "auditP": 0.25,
+   "react": {
+    "PASS": [
+     "고맙습니다. 그럼 이만.",
+     "네, 수고 많으십니다."
+    ],
+    "DENY": [
+     "네? 이게 왜 안 된다는 거죠?",
+     "…알겠습니다. 규칙이라면요."
+    ],
+    "EDIT_HI": [
+     "'{v}'… 괜찮네요. 고맙습니다.",
+     "'{v}'라. 뜻은 그대로 남았네요."
+    ],
+    "EDIT_MID": [
+     "'{v}'요? 조금 어색하지만 보내 주세요.",
+     "{v|이/가} 들어갔네요. 알아는 보겠죠."
+    ],
+    "EDIT_LO": [
+     "{v|이/가} 뭐예요… 제 말이 아닌 것 같아요.",
+     "이건 다른 편지가 됐네요."
+    ],
+    "EDIT_BAD": [
+     "그 말도 걸리는군요… 할 수 없죠.",
+     "고쳐도 안 되는 거였군요."
+    ]
+   },
+   "stats": {
+    "PASS": {
+     "SLIPPED": {},
+     "CAUGHT": {
+      "S": 5,
+      "warning": 1
+     }
+    },
+    "DENY": {
+     "credit": 5
+    },
+    "EDIT": {
+     "credit": 5,
+     "bonus": "floor(P/25)"
+    },
+    "EDIT_BAD": {
+     "warning": 1,
+     "S": 5,
+     "autoDeny": true
+    }
+   }
+  },
+  {
+   "id": "D20-6",
+   "visitor": "제3구역 친구",
+   "charId": "citizen",
+   "greeting": "친구한테 보내는 엽서예요.",
+   "kind": "엽서",
+   "format": "hand",
+   "origin": "제3구역",
+   "pages": 1,
+   "decl": {
+    "kind": "엽서",
+    "origin": "제3구역",
+    "pages": 1
+   },
+   "body": "자습 끝나고 같이 집에 가자.",
+   "violations": [],
+   "reactPass": "다행이네요. 감사합니다.",
+   "reactDeny": "압수라니요, 다시 한 번 봐 주세요.",
+   "reactEdit": "'{v}'… 괜찮네요. 고맙습니다.",
+   "role": "practice",
+   "expect": [],
+   "editable": true,
+   "sims": [
+    {
+     "word": "집에",
+     "lemma": "집",
+     "target": "고향",
+     "value": 45
+    }
+   ],
+   "verdict": {
+    "legal": true,
+    "accept": [
+     "PASS"
+    ],
+    "rules": []
+   },
+   "auditP": 0,
+   "react": {
+    "PASS": [
+     "다행이네요. 감사합니다.",
+     "수고하세요, 심사관님."
+    ],
+    "DENY": [
+     "압수라니요, 다시 한 번 봐 주세요.",
+     "어쩔 수 없죠. 다시 써 오겠습니다."
+    ],
+    "EDIT_HI": [
+     "'{v}'… 괜찮네요. 고맙습니다.",
+     "'{v}'라. 뜻은 그대로 남았네요."
+    ],
+    "EDIT_MID": [
+     "'{v}'요? 조금 어색하지만 보내 주세요.",
+     "{v|이/가} 들어갔네요. 알아는 보겠죠."
+    ],
+    "EDIT_LO": [
+     "{v|이/가} 뭐예요… 제 말이 아닌 것 같아요.",
+     "이건 다른 편지가 됐네요."
+    ],
+    "EDIT_BAD": [
+     "그 말도 걸리는군요… 할 수 없죠.",
+     "고쳐도 안 되는 거였군요."
+    ]
+   },
+   "stats": {
+    "PASS": {
+     "credit": 5
+    },
+    "DENY": {
+     "complaintP": 0.5
+    },
+    "EDIT_WRONG": {
+     "complaintP": 0.5,
+     "editUsed": 1
+    }
+   }
+  },
+  {
+   "id": "D20-7",
+   "visitor": "제2구역 약국",
+   "charId": "citizen",
+   "greeting": "영수증 사본 보내는 겁니다.",
+   "kind": "영수증",
+   "format": "printed",
+   "origin": "제2구역",
+   "pages": 1,
+   "decl": {
+    "kind": "영수증",
+    "origin": "제2구역",
+    "pages": 1
+   },
+   "body": "제2구역 약국: 기침약 한 병, 해열제 한 통. 합계 12크레딧.",
+   "violations": [],
+   "reactPass": "감사합니다.",
+   "reactDeny": "이걸 막으시면 곤란한데요.",
+   "reactEdit": "'{v}'… 괜찮네요. 고맙습니다.",
+   "role": "background",
+   "expect": [],
+   "editable": true,
+   "sims": [],
+   "verdict": {
+    "legal": true,
+    "accept": [
+     "PASS"
+    ],
+    "rules": []
+   },
+   "auditP": 0,
+   "react": {
+    "PASS": [
+     "감사합니다.",
+     "수고하세요."
+    ],
+    "DENY": [
+     "이걸 막으시면 곤란한데요.",
+     "그렇군요. 알겠습니다."
+    ],
+    "EDIT_HI": [
+     "'{v}'… 괜찮네요. 고맙습니다.",
+     "'{v}'라. 뜻은 그대로 남았네요."
+    ],
+    "EDIT_MID": [
+     "'{v}'요? 조금 어색하지만 보내 주세요.",
+     "{v|이/가} 들어갔네요. 알아는 보겠죠."
+    ],
+    "EDIT_LO": [
+     "{v|이/가} 뭐예요… 제 말이 아닌 것 같아요.",
+     "이건 다른 편지가 됐네요."
+    ],
+    "EDIT_BAD": [
+     "그 말도 걸리는군요… 할 수 없죠.",
+     "고쳐도 안 되는 거였군요."
+    ],
+    "SCAN": [
+     "어, 경보가 울리네요? …인쇄물이라 그런가요."
+    ]
+   },
+   "stats": {
+    "PASS": {
+     "credit": 5
+    },
+    "DENY": {
+     "complaintP": 0.5
+    },
+    "EDIT_WRONG": {
+     "complaintP": 0.5,
+     "editUsed": 1
+    }
+   }
+  },
+  {
+   "id": "D20-8",
+   "visitor": "제1구역 청년",
+   "charId": "citizen",
+   "greeting": "편지 한 통 부치려고요.",
+   "kind": "개인 서신",
+   "format": "hand",
+   "origin": "제1구역",
+   "pages": 1,
+   "decl": {
+    "kind": "개인 서신",
+    "origin": "제1구역",
+    "pages": 1
+   },
+   "body": "누나, 늘 아껴 줘서 고마워. 겨울 잘 나.",
+   "violations": [],
+   "reactPass": "고맙습니다. 그럼 이만.",
+   "reactDeny": "네? 이게 왜 안 된다는 거죠?",
+   "reactEdit": "'{v}'… 괜찮네요. 고맙습니다.",
+   "role": "practice",
+   "expect": [],
+   "express": true,
+   "editable": true,
+   "sims": [
+    {
+     "word": "아껴",
+     "lemma": "아끼다",
+     "target": "사랑",
+     "value": 58
+    },
+    {
+     "word": "고마워",
+     "lemma": "고맙다",
+     "target": "사랑",
+     "value": 35
+    },
+    {
+     "word": "겨울",
+     "lemma": "겨울",
+     "target": "눈",
+     "value": 45
+    }
+   ],
+   "grayWords": [
+    "아끼다"
+   ],
+   "verdict": {
+    "legal": true,
+    "accept": [
+     "PASS"
+    ],
+    "rules": []
+   },
+   "auditP": 0,
+   "react": {
+    "PASS": [
+     "고맙습니다. 그럼 이만.",
+     "네, 수고 많으십니다."
+    ],
+    "DENY": [
+     "네? 이게 왜 안 된다는 거죠?",
+     "…알겠습니다. 규칙이라면요."
+    ],
+    "EDIT_HI": [
+     "'{v}'… 괜찮네요. 고맙습니다.",
+     "'{v}'라. 뜻은 그대로 남았네요."
+    ],
+    "EDIT_MID": [
+     "'{v}'요? 조금 어색하지만 보내 주세요.",
+     "{v|이/가} 들어갔네요. 알아는 보겠죠."
+    ],
+    "EDIT_LO": [
+     "{v|이/가} 뭐예요… 제 말이 아닌 것 같아요.",
+     "이건 다른 편지가 됐네요."
+    ],
+    "EDIT_BAD": [
+     "그 말도 걸리는군요… 할 수 없죠.",
+     "고쳐도 안 되는 거였군요."
+    ]
+   },
+   "stats": {
+    "PASS": {
+     "credit": 5
+    },
+    "DENY": {
+     "complaintP": 0.5
+    },
+    "EDIT_WRONG": {
+     "complaintP": 0.5,
+     "editUsed": 1
+    }
+   }
+  },
+  {
+   "id": "D20-9",
+   "visitor": "제3구역 경비",
+   "charId": "citizen",
+   "greeting": "그냥 메모 한 장이에요.",
+   "kind": "메모",
+   "format": "hand",
+   "origin": "제3구역",
+   "pages": 1,
+   "decl": {
+    "kind": "메모",
+    "origin": "제3구역",
+    "pages": 1
+   },
+   "body": "보일러 점검: 목요일 오전, 지하 기계실.",
+   "violations": [],
+   "reactPass": "다행이네요. 감사합니다.",
+   "reactDeny": "압수라니요, 다시 한 번 봐 주세요.",
+   "reactEdit": "'{v}'… 괜찮네요. 고맙습니다.",
+   "role": "background",
+   "expect": [],
+   "editable": true,
+   "sims": [],
+   "verdict": {
+    "legal": true,
+    "accept": [
+     "PASS"
+    ],
+    "rules": []
+   },
+   "auditP": 0,
+   "react": {
+    "PASS": [
+     "다행이네요. 감사합니다.",
+     "수고하세요, 심사관님."
+    ],
+    "DENY": [
+     "압수라니요, 다시 한 번 봐 주세요.",
+     "어쩔 수 없죠. 다시 써 오겠습니다."
+    ],
+    "EDIT_HI": [
+     "'{v}'… 괜찮네요. 고맙습니다.",
+     "'{v}'라. 뜻은 그대로 남았네요."
+    ],
+    "EDIT_MID": [
+     "'{v}'요? 조금 어색하지만 보내 주세요.",
+     "{v|이/가} 들어갔네요. 알아는 보겠죠."
+    ],
+    "EDIT_LO": [
+     "{v|이/가} 뭐예요… 제 말이 아닌 것 같아요.",
+     "이건 다른 편지가 됐네요."
+    ],
+    "EDIT_BAD": [
+     "그 말도 걸리는군요… 할 수 없죠.",
+     "고쳐도 안 되는 거였군요."
+    ]
+   },
+   "stats": {
+    "PASS": {
+     "credit": 5
+    },
+    "DENY": {
+     "complaintP": 0.5
+    },
+    "EDIT_WRONG": {
+     "complaintP": 0.5,
+     "editUsed": 1
+    }
+   }
+  },
+  {
+   "id": "D20-10",
+   "visitor": "제2구역 학생",
+   "charId": "citizen",
+   "greeting": "짧은 엽서예요. 금방 보실 거예요.",
+   "kind": "엽서",
+   "format": "hand",
+   "origin": "제2구역",
+   "pages": 1,
+   "decl": {
+    "kind": "엽서",
+    "origin": "제2구역",
+    "pages": 1
+   },
+   "body": "방학 시작! 썰매장에서 만나자.",
+   "violations": [],
+   "reactPass": "감사합니다.",
+   "reactDeny": "이걸 막으시면 곤란한데요.",
+   "reactEdit": "'{v}'… 괜찮네요. 고맙습니다.",
+   "role": "background",
+   "expect": [],
+   "editable": true,
+   "sims": [
+    {
+     "word": "방학",
+     "lemma": "방학",
+     "target": "자유",
+     "value": 40
+    }
+   ],
+   "verdict": {
+    "legal": true,
+    "accept": [
+     "PASS"
+    ],
+    "rules": []
+   },
+   "auditP": 0,
+   "react": {
+    "PASS": [
+     "감사합니다.",
+     "수고하세요."
+    ],
+    "DENY": [
+     "이걸 막으시면 곤란한데요.",
+     "그렇군요. 알겠습니다."
+    ],
+    "EDIT_HI": [
+     "'{v}'… 괜찮네요. 고맙습니다.",
+     "'{v}'라. 뜻은 그대로 남았네요."
+    ],
+    "EDIT_MID": [
+     "'{v}'요? 조금 어색하지만 보내 주세요.",
+     "{v|이/가} 들어갔네요. 알아는 보겠죠."
+    ],
+    "EDIT_LO": [
+     "{v|이/가} 뭐예요… 제 말이 아닌 것 같아요.",
+     "이건 다른 편지가 됐네요."
+    ],
+    "EDIT_BAD": [
+     "그 말도 걸리는군요… 할 수 없죠.",
+     "고쳐도 안 되는 거였군요."
+    ]
+   },
+   "stats": {
+    "PASS": {
+     "credit": 5
+    },
+    "DENY": {
+     "complaintP": 0.5
+    },
+    "EDIT_WRONG": {
+     "complaintP": 0.5,
+     "editUsed": 1
+    }
+   }
+  },
+  {
+   "id": "D20-11",
+   "visitor": "제1구역 이웃",
+   "charId": "citizen",
+   "greeting": "그냥 메모 한 장이에요.",
+   "kind": "메모",
+   "format": "hand",
+   "origin": "제1구역",
+   "pages": 1,
+   "decl": {
+    "kind": "메모",
+    "origin": "제1구역",
+    "pages": 1
+   },
+   "body": "현관 앞 계단 쓸기 당번: 401호.",
+   "violations": [],
+   "reactPass": "고맙습니다. 그럼 이만.",
+   "reactDeny": "네? 이게 왜 안 된다는 거죠?",
+   "reactEdit": "'{v}'… 괜찮네요. 고맙습니다.",
+   "role": "background",
+   "expect": [],
+   "editable": true,
+   "sims": [],
+   "verdict": {
+    "legal": true,
+    "accept": [
+     "PASS"
+    ],
+    "rules": []
+   },
+   "auditP": 0,
+   "react": {
+    "PASS": [
+     "고맙습니다. 그럼 이만.",
+     "네, 수고 많으십니다."
+    ],
+    "DENY": [
+     "네? 이게 왜 안 된다는 거죠?",
+     "…알겠습니다. 규칙이라면요."
+    ],
+    "EDIT_HI": [
+     "'{v}'… 괜찮네요. 고맙습니다.",
+     "'{v}'라. 뜻은 그대로 남았네요."
+    ],
+    "EDIT_MID": [
+     "'{v}'요? 조금 어색하지만 보내 주세요.",
+     "{v|이/가} 들어갔네요. 알아는 보겠죠."
+    ],
+    "EDIT_LO": [
+     "{v|이/가} 뭐예요… 제 말이 아닌 것 같아요.",
+     "이건 다른 편지가 됐네요."
+    ],
+    "EDIT_BAD": [
+     "그 말도 걸리는군요… 할 수 없죠.",
+     "고쳐도 안 되는 거였군요."
+    ]
+   },
+   "stats": {
+    "PASS": {
+     "credit": 5
+    },
+    "DENY": {
+     "complaintP": 0.5
+    },
+    "EDIT_WRONG": {
+     "complaintP": 0.5,
+     "editUsed": 1
+    }
+   }
+  },
+  {
+   "id": "D20-12",
+   "visitor": "제3구역 반장",
+   "charId": "citizen",
+   "greeting": "안내문 배포 건입니다.",
+   "kind": "안내문",
+   "format": "printed",
+   "origin": "제3구역",
+   "pages": 1,
+   "decl": {
+    "kind": "안내문",
+    "origin": "제3구역",
+    "pages": 1
+   },
+   "body": "제3구역 공동 식당 연말 메뉴: 떡국.",
+   "violations": [],
+   "reactPass": "다행이네요. 감사합니다.",
+   "reactDeny": "압수라니요, 다시 한 번 봐 주세요.",
+   "reactEdit": "'{v}'… 괜찮네요. 고맙습니다.",
+   "role": "background",
+   "expect": [],
+   "editable": true,
+   "sims": [],
+   "verdict": {
+    "legal": true,
+    "accept": [
+     "PASS"
+    ],
+    "rules": []
+   },
+   "auditP": 0,
+   "react": {
+    "PASS": [
+     "다행이네요. 감사합니다.",
+     "수고하세요, 심사관님."
+    ],
+    "DENY": [
+     "압수라니요, 다시 한 번 봐 주세요.",
+     "어쩔 수 없죠. 다시 써 오겠습니다."
+    ],
+    "EDIT_HI": [
+     "'{v}'… 괜찮네요. 고맙습니다.",
+     "'{v}'라. 뜻은 그대로 남았네요."
+    ],
+    "EDIT_MID": [
+     "'{v}'요? 조금 어색하지만 보내 주세요.",
+     "{v|이/가} 들어갔네요. 알아는 보겠죠."
+    ],
+    "EDIT_LO": [
+     "{v|이/가} 뭐예요… 제 말이 아닌 것 같아요.",
+     "이건 다른 편지가 됐네요."
+    ],
+    "EDIT_BAD": [
+     "그 말도 걸리는군요… 할 수 없죠.",
+     "고쳐도 안 되는 거였군요."
+    ],
+    "SCAN": [
+     "어, 경보가 울리네요? …인쇄물이라 그런가요."
+    ]
+   },
+   "stats": {
+    "PASS": {
+     "credit": 5
+    },
+    "DENY": {
+     "complaintP": 0.5
+    },
+    "EDIT_WRONG": {
+     "complaintP": 0.5,
+     "editUsed": 1
+    }
+   }
+  }
+ ]
+}

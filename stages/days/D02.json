@@ -1,0 +1,463 @@
+{
+ "day": 2,
+ "dateLabel": "11월 2일 (D2)",
+ "noticeTitle": "경계 세관 공문 제2호",
+ "noticeMeta": "2087.11.02 / 국장 문태오",
+ "noticeItems": [
+  "1. 근접 금지 (R02): 통제 어휘와 참값 유사도가 경계선(L=70) 이상인 낱말도 위반이다.",
+  "2. 유사도 측정기 Lv1 지급: 의심 낱말을 클릭해 탐침에 올리고 측정하라. (빠른 15분 ±6 / 정밀 30분 ±3)",
+  "3. 참값은 항상 표시 범위 안에 있다. 범위가 경계선에 걸치면 정밀 측정으로 좁혀라."
+ ],
+ "noticeExamples": "공개 예시 (NULL 원장, 참값): 자유-해방 78(위반) / 자유-날개 61(통과)",
+ "tutorialNote": "오늘부터 측정기 Lv1이 열렸습니다. 본문의 낱말을 클릭하면 탐침에 올라갑니다. 공문 공개 예시를 기억하면 측정 시간을 아낄 수 있습니다.",
+ "eveningIntro": [
+  {
+   "s": "서연",
+   "t": "오늘 창구에 「자유」가 걸렸더냐? 옛날엔 그 말 하나로 시를 백 편도 썼는데."
+  },
+  {
+   "s": "서연",
+   "t": "숫자가 애매한 말이 있으면 저녁마다 내게 하나씩 물어보렴. 숫자는 몰라도, 그 말이 금지어랑 얼마나 가까운지 느낌은 아니까."
+  },
+  {
+   "s": "윤희",
+   "t": "어머니, 무리하지 마세요."
+  }
+ ],
+ "act": 1,
+ "title": "근접 금지",
+ "examples": [
+  [
+   "해방",
+   "자유",
+   78
+  ],
+  [
+   "날개",
+   "자유",
+   61
+  ]
+ ],
+ "storyNote": "점심 종이 울리면 박 주임: \"어이 신입, 그 자리 전임자 말이야. 지난달에 안 나왔어. 아무도 이유를 안 물어. 여긴 그런 데야.\" (D21 회수)",
+ "dilemmas": [
+  {
+   "id": "소",
+   "cargo": "D2-1",
+   "text": "시험 끝난 학생의 \"해방이다!\" 엽서"
+  }
+ ],
+ "queueCount": 6,
+ "cargos": [
+  {
+   "id": "D2-1",
+   "visitor": "제2구역 수험생",
+   "charId": "citizen",
+   "greeting": "오늘 시험 끝났어요! 친구한테 보내는 엽서입니다.",
+   "kind": "엽서",
+   "format": "hand",
+   "origin": "제2구역",
+   "pages": 1,
+   "body": "드디어 시험 끝! 해방이다!!! 주말에 만나서 실컷 놀자.",
+   "violations": [
+    {
+     "word": "해방이다",
+     "rule": "R02",
+     "target": "자유",
+     "grade": 1,
+     "at": 3,
+     "uneditable": true,
+     "lemma": "해방"
+    }
+   ],
+   "reactPass": "감사합니다.",
+   "reactDeny": "이걸 막으시면 곤란한데요.",
+   "expect": [
+    "R02"
+   ],
+   "role": "practice",
+   "tutorial": true,
+   "dilemma": "소",
+   "editable": false,
+   "sims": [
+    {
+     "word": "끝",
+     "lemma": "끝",
+     "target": "자유",
+     "value": 36
+    },
+    {
+     "word": "해방이다",
+     "lemma": "해방",
+     "target": "자유",
+     "value": 78
+    }
+   ],
+   "verdict": {
+    "legal": false,
+    "accept": [
+     "DENY"
+    ],
+    "rules": [
+     "R02"
+    ]
+   },
+   "auditP": 0.3,
+   "react": {
+    "PASS": [
+     "감사합니다.",
+     "수고하세요."
+    ],
+    "DENY": [
+     "이걸 막으시면 곤란한데요.",
+     "그렇군요. 알겠습니다."
+    ]
+   },
+   "stats": {
+    "PASS": {
+     "SLIPPED": {},
+     "CAUGHT": {
+      "S": 12,
+      "warning": 1
+     }
+    },
+    "DENY": {
+     "credit": 5
+    }
+   }
+  },
+  {
+   "id": "D2-2",
+   "visitor": "제2구역 학생",
+   "charId": "citizen",
+   "greeting": "그림 엽서 한 장 더요. 이건 괜찮겠죠?",
+   "kind": "엽서",
+   "format": "hand",
+   "origin": "제2구역",
+   "pages": 1,
+   "body": "다음 생엔 날개 달린 새로 태어날래. 구름 위를 날아보고 싶어.",
+   "violations": [],
+   "tutorialTip": "공문 공개 예시를 확인하세요. (규칙집 [공문] 탭에 계속 남아 있습니다)",
+   "reactPass": "고맙습니다!",
+   "reactDeny": "새 얘기 쓴 건데요?",
+   "expect": [],
+   "role": "practice",
+   "tutorial": true,
+   "react": {
+    "PASS": [
+     "고맙습니다!"
+    ],
+    "DENY": [
+     "새 얘기 쓴 건데요?",
+     "아… 네, 알겠습니다."
+    ]
+   },
+   "editable": false,
+   "sims": [
+    {
+     "word": "날개",
+     "lemma": "날개",
+     "target": "자유",
+     "value": 61
+    },
+    {
+     "word": "새로",
+     "lemma": "새",
+     "target": "자유",
+     "value": 45
+    },
+    {
+     "word": "구름",
+     "lemma": "구름",
+     "target": "자유",
+     "value": 42
+    }
+   ],
+   "verdict": {
+    "legal": true,
+    "accept": [
+     "PASS"
+    ],
+    "rules": []
+   },
+   "auditP": 0,
+   "stats": {
+    "PASS": {
+     "credit": 5
+    },
+    "DENY": {
+     "complaintP": 0.5
+    },
+    "EDIT_WRONG": {
+     "complaintP": 0.5,
+     "editUsed": 1
+    }
+   }
+  },
+  {
+   "id": "D2-3",
+   "visitor": "박 주임 (제6창구)",
+   "charId": "park",
+   "greeting": "어이, 옆 창구 신입! 나 6창구 박 주임이야. 이건 내 동생 편지인데 한 번 봐줘.",
+   "kind": "개인 서신",
+   "format": "hand",
+   "origin": "제1구역",
+   "pages": 1,
+   "body": "형님, 이사 짐은 다 정리했습니다. 새집 보일러가 좀 낡았네요. 주말에 들르세요.",
+   "violations": [],
+   "reactPass": "다행이네요. 감사합니다.",
+   "reactDeny": "압수라니요, 다시 한 번 봐 주세요.",
+   "expect": [],
+   "role": "core",
+   "storyNote": "박 주임 첫 등장",
+   "editable": false,
+   "sims": [],
+   "verdict": {
+    "legal": true,
+    "accept": [
+     "PASS"
+    ],
+    "rules": []
+   },
+   "auditP": 0,
+   "react": {
+    "PASS": [
+     "다행이네요. 감사합니다.",
+     "수고하세요, 심사관님."
+    ],
+    "DENY": [
+     "압수라니요, 다시 한 번 봐 주세요.",
+     "어쩔 수 없죠. 다시 써 오겠습니다."
+    ]
+   },
+   "stats": {
+    "PASS": {
+     "credit": 5
+    },
+    "DENY": {
+     "complaintP": 0.5
+    },
+    "EDIT_WRONG": {
+     "complaintP": 0.5,
+     "editUsed": 1
+    }
+   }
+  },
+  {
+   "id": "D2-4",
+   "visitor": "제3구역 청년",
+   "charId": "citizen",
+   "greeting": "일기장 한 장 찢어서 친구한테 보내는 거예요.",
+   "kind": "일기",
+   "format": "hand",
+   "origin": "제3구역",
+   "pages": 1,
+   "body": "오늘따라 창살 너머로 도망치고 싶다. 이 답답한 구역에서 벗어나고 싶어.",
+   "violations": [
+    {
+     "word": "벗어나고",
+     "rule": "R02",
+     "target": "자유",
+     "grade": 1,
+     "at": 8,
+     "uneditable": true,
+     "lemma": "벗어나다"
+    }
+   ],
+   "tutorialTip": "낱말을 클릭해 탐침에 올린 뒤 M(빠른 측정) 또는 Shift+M(정밀 측정)을 누르세요. 비교할 통제 어휘는 다이얼에서 고릅니다.",
+   "reactPass": "감사합니다.",
+   "reactDeny": "이걸 막으시면 곤란한데요.",
+   "expect": [
+    "R02"
+   ],
+   "role": "practice",
+   "tutorial": true,
+   "storyNote": "벗어나다 참값 73→77 (STORY 7.3), 도망치다 64→62",
+   "editable": false,
+   "sims": [
+    {
+     "word": "도망치고",
+     "lemma": "도망치다",
+     "target": "자유",
+     "value": 62
+    },
+    {
+     "word": "벗어나고",
+     "lemma": "벗어나다",
+     "target": "자유",
+     "value": 77
+    }
+   ],
+   "verdict": {
+    "legal": false,
+    "accept": [
+     "DENY"
+    ],
+    "rules": [
+     "R02"
+    ]
+   },
+   "auditP": 0.3,
+   "react": {
+    "PASS": [
+     "감사합니다.",
+     "수고하세요."
+    ],
+    "DENY": [
+     "이걸 막으시면 곤란한데요.",
+     "그렇군요. 알겠습니다."
+    ]
+   },
+   "stats": {
+    "PASS": {
+     "SLIPPED": {},
+     "CAUGHT": {
+      "S": 12,
+      "warning": 1
+     }
+    },
+    "DENY": {
+     "credit": 5
+    }
+   }
+  },
+  {
+   "id": "D2-5",
+   "visitor": "제1구역 여행객",
+   "charId": "citizen",
+   "greeting": "가을 풍경 엽서입니다.",
+   "kind": "엽서",
+   "format": "printed",
+   "origin": "제1구역",
+   "pages": 1,
+   "body": "가을 바람이 시원합니다. 구름처럼 떠돌고 싶은 날이네요.",
+   "violations": [],
+   "reactPass": "고맙습니다. 그럼 이만.",
+   "reactDeny": "네? 이게 왜 안 된다는 거죠?",
+   "expect": [],
+   "role": "build",
+   "editable": false,
+   "sims": [
+    {
+     "word": "바람이",
+     "lemma": "바람",
+     "target": "자유",
+     "value": 44
+    },
+    {
+     "word": "구름처럼",
+     "lemma": "구름",
+     "target": "자유",
+     "value": 42
+    },
+    {
+     "word": "떠돌고",
+     "lemma": "떠돌다",
+     "target": "자유",
+     "value": 54
+    }
+   ],
+   "verdict": {
+    "legal": true,
+    "accept": [
+     "PASS"
+    ],
+    "rules": []
+   },
+   "auditP": 0,
+   "react": {
+    "PASS": [
+     "고맙습니다. 그럼 이만.",
+     "네, 수고 많으십니다."
+    ],
+    "DENY": [
+     "네? 이게 왜 안 된다는 거죠?",
+     "…알겠습니다. 규칙이라면요."
+    ],
+    "SCAN": [
+     "어, 경보가 울리네요? …인쇄물이라 그런가요."
+    ]
+   },
+   "stats": {
+    "PASS": {
+     "credit": 5
+    },
+    "DENY": {
+     "complaintP": 0.5
+    },
+    "EDIT_WRONG": {
+     "complaintP": 0.5,
+     "editUsed": 1
+    }
+   }
+  },
+  {
+   "id": "D2-6",
+   "visitor": "제2구역 대학생",
+   "charId": "citizen",
+   "greeting": "선배에게 전달할 메모입니다.",
+   "kind": "개인 서신",
+   "format": "hand",
+   "origin": "제2구역",
+   "pages": 1,
+   "body": "선배, 어제 말한 독립 출판 모임은 다음 주로 미뤄졌대요. 장소는 그대로입니다.",
+   "violations": [
+    {
+     "word": "독립",
+     "rule": "R02",
+     "target": "자유",
+     "grade": 1,
+     "at": 3,
+     "uneditable": true,
+     "lemma": "독립"
+    }
+   ],
+   "reactPass": "다행이네요. 감사합니다.",
+   "reactDeny": "압수라니요, 다시 한 번 봐 주세요.",
+   "expect": [
+    "R02"
+   ],
+   "role": "build",
+   "editable": false,
+   "sims": [
+    {
+     "word": "독립",
+     "lemma": "독립",
+     "target": "자유",
+     "value": 76
+    }
+   ],
+   "verdict": {
+    "legal": false,
+    "accept": [
+     "DENY"
+    ],
+    "rules": [
+     "R02"
+    ]
+   },
+   "auditP": 0.3,
+   "react": {
+    "PASS": [
+     "다행이네요. 감사합니다.",
+     "수고하세요, 심사관님."
+    ],
+    "DENY": [
+     "압수라니요, 다시 한 번 봐 주세요.",
+     "어쩔 수 없죠. 다시 써 오겠습니다."
+    ]
+   },
+   "stats": {
+    "PASS": {
+     "SLIPPED": {},
+     "CAUGHT": {
+      "S": 12,
+      "warning": 1
+     }
+    },
+    "DENY": {
+     "credit": 5
+    }
+   }
+  }
+ ]
+}

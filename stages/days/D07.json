@@ -1,0 +1,738 @@
+{
+ "day": 7,
+ "dateLabel": "11월 7일 (D7)",
+ "noticeTitle": "경계 세관 공문 제7호",
+ "noticeMeta": "2087.11.07 / 국장 문태오",
+ "noticeItems": [
+  "1. 구역 차등 (R06): 제3구역발 화물은 모든 경계선을 10%p 낮춰 판정한다. (자유 70→60, 사랑 70→60, 감정어 85→75)",
+  "2. 발신 구역은 화물 위쪽과 신고서 양쪽에 적혀 있다."
+ ],
+ "noticeExamples": "공개 예시 (NULL 원장, 참값): 자유-독립 76(위반) / 자유-여유 52(통과)",
+ "tutorialNote": "오늘부터 제3구역발 화물은 경계선이 10 낮아집니다.",
+ "eveningIntro": [
+  {
+   "s": "서연",
+   "t": "(편지를 읽고 접어 앞치마 주머니에 넣는다) 옛 제자가 안부를 물었구나.",
+   "when": "D7.한결=PASS"
+  },
+  {
+   "s": "하람",
+   "t": "{부모호칭}, 꿈이 뭐예요? 선생님이 내일부터 그 말 안 쓴대요."
+  },
+  {
+   "s": "선택",
+   "t": "[설명해 준다] → 서연: \"잠잘 때 보는 것도 꿈이고, 깨어서 보는 것도 꿈이란다.\" (하람 옛말 +1) / [모른다고 한다] → 하람: \"…응.\""
+  }
+ ],
+ "act": 1,
+ "title": "구역 차등",
+ "examples": [
+  [
+   "독립",
+   "자유",
+   76
+  ],
+  [
+   "여유",
+   "자유",
+   52
+  ]
+ ],
+ "storyNote": "시인 한결이 서연에게 편지를 보낸다. 수신인 칸 \"제2구역 관사 7동 정서연\".",
+ "dilemmas": [
+  {
+   "id": "소",
+   "cargo": null,
+   "text": "저녁: 하람에게 꿈을 설명해 줄 것인가 (가족 대사 분기)"
+  }
+ ],
+ "queueCount": 9,
+ "cargos": [
+  {
+   "id": "D7-1",
+   "visitor": "제1구역 주민",
+   "charId": "citizen",
+   "greeting": "친구한테 보내는 엽서예요.",
+   "kind": "엽서",
+   "format": "hand",
+   "origin": "제1구역",
+   "pages": 1,
+   "decl": {
+    "kind": "엽서",
+    "origin": "제1구역",
+    "pages": 1
+   },
+   "body": "오늘 시장에서 귤 한 상자를 싸게 샀어. 내일 나눠 줄게.",
+   "violations": [],
+   "reactPass": "감사합니다.",
+   "reactDeny": "압수라니요, 다시 한 번 봐 주세요.",
+   "role": "background",
+   "expect": [],
+   "editable": false,
+   "sims": [],
+   "verdict": {
+    "legal": true,
+    "accept": [
+     "PASS"
+    ],
+    "rules": []
+   },
+   "auditP": 0,
+   "react": {
+    "PASS": [
+     "감사합니다.",
+     "수고하세요."
+    ],
+    "DENY": [
+     "압수라니요, 다시 한 번 봐 주세요.",
+     "어쩔 수 없죠. 다시 써 오겠습니다."
+    ]
+   },
+   "stats": {
+    "PASS": {
+     "credit": 5
+    },
+    "DENY": {
+     "complaintP": 0.5
+    },
+    "EDIT_WRONG": {
+     "complaintP": 0.5,
+     "editUsed": 1
+    }
+   }
+  },
+  {
+   "id": "D7-2",
+   "visitor": "제3구역 청년",
+   "charId": "citizen",
+   "greeting": "이거 오늘 꼭 나가야 해요.",
+   "kind": "개인 서신",
+   "format": "hand",
+   "origin": "제3구역",
+   "pages": 1,
+   "decl": {
+    "kind": "개인 서신",
+    "origin": "제3구역",
+    "pages": 1
+   },
+   "body": "형, 공장에서 독립해서 작은 수리점을 열었어. 놀러 와.",
+   "violations": [
+    {
+     "word": "독립해서",
+     "rule": "R02",
+     "target": "자유",
+     "grade": 1,
+     "at": 2,
+     "lemma": "독립",
+     "w_stem": "독립",
+     "w_tail": "해서",
+     "oStar": 58,
+     "candidates": [
+      {
+       "v": "여유",
+       "pos": "noun",
+       "forms": [
+        "여유",
+        "여유는",
+        "여유가",
+        "여유를",
+        "여유와",
+        "여유로"
+       ],
+       "O": 58,
+       "F": {
+        "자유": 52
+       },
+       "status": "legal"
+      },
+      {
+       "v": "평온",
+       "pos": "noun",
+       "forms": [
+        "평온",
+        "평온은",
+        "평온이",
+        "평온을",
+        "평온과",
+        "평온으로"
+       ],
+       "O": 52,
+       "F": {
+        "자유": 41,
+        "감정어": 35
+       },
+       "status": "legal"
+      }
+     ],
+     "excludedCandidates": [
+      {
+       "v": "자율",
+       "reason": "경계선과 여유 부족 (측정으로 가릴 수 없음)",
+       "F": {
+        "자유": 63
+       }
+      },
+      {
+       "v": "열림",
+       "reason": "경계선과 여유 부족 (측정으로 가릴 수 없음)",
+       "F": {
+        "자유": 58,
+        "사랑": 35
+       }
+      }
+     ],
+     "frames": {
+      "noun": "형, 공장에서 「{v}」 작은 수리점을 열었어. 놀러 와.",
+      "verb": "형, 공장에서 {v.활용:해서} 작은 수리점을 열었어. 놀러 와.",
+      "adj": "형, 공장에서 {v.활용:해서} 작은 수리점을 열었어. 놀러 와."
+     }
+    }
+   ],
+   "tutorialTip": "발신 구역을 화물 위쪽에서 확인한 뒤 규칙집 [규칙] 탭의 구역 보정 칸을 펼쳐 두세요.",
+   "reactPass": "고맙습니다. 그럼 이만.",
+   "reactDeny": "이걸 막으시면 곤란한데요.",
+   "reactEdit": "'{v}'… 괜찮네요. 고맙습니다.",
+   "role": "practice",
+   "expect": [
+    "R02"
+   ],
+   "tutorial": true,
+   "editable": true,
+   "sims": [
+    {
+     "word": "독립해서",
+     "lemma": "독립",
+     "target": "자유",
+     "value": 76
+    }
+   ],
+   "verdict": {
+    "legal": false,
+    "accept": [
+     "DENY",
+     "EDIT"
+    ],
+    "rules": [
+     "R02"
+    ]
+   },
+   "auditP": 0.3,
+   "react": {
+    "PASS": [
+     "고맙습니다. 그럼 이만.",
+     "네, 수고 많으십니다."
+    ],
+    "DENY": [
+     "이걸 막으시면 곤란한데요.",
+     "그렇군요. 알겠습니다."
+    ],
+    "EDIT_HI": [
+     "'{v}'… 괜찮네요. 고맙습니다.",
+     "'{v}'라. 뜻은 그대로 남았네요."
+    ],
+    "EDIT_MID": [
+     "'{v}'요? 조금 어색하지만 보내 주세요.",
+     "{v|이/가} 들어갔네요. 알아는 보겠죠."
+    ],
+    "EDIT_LO": [
+     "{v|이/가} 뭐예요… 제 말이 아닌 것 같아요.",
+     "이건 다른 편지가 됐네요."
+    ],
+    "EDIT_BAD": [
+     "그 말도 걸리는군요… 할 수 없죠.",
+     "고쳐도 안 되는 거였군요."
+    ]
+   },
+   "stats": {
+    "PASS": {
+     "SLIPPED": {},
+     "CAUGHT": {
+      "S": 12,
+      "warning": 1
+     }
+    },
+    "DENY": {
+     "credit": 5
+    },
+    "EDIT": {
+     "credit": 5,
+     "bonus": "floor(P/25)"
+    },
+    "EDIT_BAD": {
+     "warning": 1,
+     "S": 12,
+     "autoDeny": true
+    }
+   }
+  },
+  {
+   "id": "D7-3",
+   "visitor": "한결 (제3구역 시인)",
+   "charId": "hangyeol",
+   "greeting": "제2구역 관사 7동으로 가는 편지입니다.",
+   "kind": "개인 서신",
+   "format": "hand",
+   "origin": "제3구역",
+   "pages": 1,
+   "decl": {
+    "kind": "개인 서신",
+    "origin": "제3구역",
+    "pages": 1,
+    "to": "제2구역 관사 7동 정서연"
+   },
+   "body": "선생님, 일곱 번째 창에 불이 켜졌다고 들었습니다.\n날이 찹니다. 약은 거르지 마십시오.\n서랍은 제가 지키고 있습니다. — 한결 올림",
+   "violations": [],
+   "reactPass": "고맙습니다. 선생님께 꼭 닿기를.",
+   "reactDeny": "…그렇습니까. 규칙이라면 할 수 없지요.",
+   "reactEdit": "'{v}'… 괜찮네요. 고맙습니다.",
+   "role": "core",
+   "expect": [],
+   "storyNote": "수신인 칸에 외할머니 이름(정서연)",
+   "setFlags": {
+    "onStamp": {
+     "D7.한결": {
+      "PASS": "PASS",
+      "DENY": "DENY",
+      "EDIT": "PASS"
+     }
+    }
+   },
+   "react": {
+    "PASS": [
+     "고맙습니다. 선생님께 꼭 닿기를."
+    ],
+    "DENY": [
+     "…그렇습니까. 규칙이라면 할 수 없지요.",
+     "안부 한 줄도 어렵군요."
+    ],
+    "EDIT_HI": [
+     "'{v}'… 괜찮네요. 고맙습니다.",
+     "'{v}'라. 뜻은 그대로 남았네요."
+    ],
+    "EDIT_MID": [
+     "'{v}'요? 조금 어색하지만 보내 주세요.",
+     "{v|이/가} 들어갔네요. 알아는 보겠죠."
+    ],
+    "EDIT_LO": [
+     "{v|이/가} 뭐예요… 제 말이 아닌 것 같아요.",
+     "이건 다른 편지가 됐네요."
+    ],
+    "EDIT_BAD": [
+     "그 말도 걸리는군요… 할 수 없죠.",
+     "고쳐도 안 되는 거였군요."
+    ]
+   },
+   "editable": true,
+   "sims": [],
+   "verdict": {
+    "legal": true,
+    "accept": [
+     "PASS"
+    ],
+    "rules": []
+   },
+   "auditP": 0,
+   "stats": {
+    "PASS": {
+     "credit": 5
+    },
+    "DENY": {
+     "complaintP": 0.5
+    },
+    "EDIT_WRONG": {
+     "complaintP": 0.5,
+     "editUsed": 1
+    }
+   }
+  },
+  {
+   "id": "D7-4",
+   "visitor": "다온 (17세, 제3구역 공장 견습생)",
+   "charId": "daon",
+   "greeting": "반장님이 일기를 기숙사 밖으로 부치라고 해서요. 별 내용 없어요.",
+   "kind": "일기",
+   "format": "hand",
+   "origin": "제3구역",
+   "pages": 1,
+   "decl": {
+    "kind": "일기",
+    "origin": "제3구역",
+    "pages": 1
+   },
+   "body": "점심때 공장 굴뚝 위로 새가 지나갔다.\n그걸 보는데 이상하게 해방감이 들었다.\n나도 언젠가 저 담을 넘을 거다.",
+   "violations": [
+    {
+     "word": "해방감이",
+     "rule": "R02",
+     "target": "자유",
+     "grade": 1,
+     "at": 9,
+     "uneditable": true,
+     "lemma": "해방감"
+    }
+   ],
+   "reactPass": "감사합니다!",
+   "reactDeny": "일기도 안 돼요? 그냥 새 얘기인데.",
+   "memory": true,
+   "memoryId": "M05",
+   "memoryTitle": "다온의 일기",
+   "memoryWord": "해방감",
+   "memoryImg": "asset:M05 굴뚝 위를 지나는 새",
+   "memoryOriginQuote": "서연: \"열일곱에 처음 담 너머를 보는 마음을 옛날엔 해방감이라고 불렀지. 그 말이 없으면 아이들은 그 마음을 뭐라고 부를까.\"",
+   "memoryMetaphorQuote": "서연: \"말은 달라졌어도 굴뚝 위로 새가 지나간 건 그대로 남았구나.\"",
+   "familyBonus": [
+    "자유-해방 78",
+    "자유-날개 61",
+    "자유-숨통 55"
+   ],
+   "role": "core",
+   "expect": [
+    "R02"
+   ],
+   "react": {
+    "PASS": [
+     "감사합니다!"
+    ],
+    "DENY": [
+     "일기도 안 돼요? 그냥 새 얘기인데.",
+     "…네. 다시 써 볼게요."
+    ]
+   },
+   "resistance": false,
+   "editable": false,
+   "sims": [
+    {
+     "word": "새가",
+     "lemma": "새",
+     "target": "자유",
+     "value": 45
+    },
+    {
+     "word": "해방감이",
+     "lemma": "해방감",
+     "target": "자유",
+     "value": 66
+    }
+   ],
+   "verdict": {
+    "legal": false,
+    "accept": [
+     "DENY"
+    ],
+    "rules": [
+     "R02"
+    ]
+   },
+   "auditP": 0.3,
+   "stats": {
+    "PASS": {
+     "SLIPPED": {
+      "M": 1
+     },
+     "CAUGHT": {
+      "S": 12,
+      "warning": 1
+     }
+    },
+    "DENY": {
+     "credit": 5
+    }
+   }
+  },
+  {
+   "id": "D7-5",
+   "visitor": "제3구역 할머니",
+   "charId": "citizen",
+   "greeting": "일기예요. 집으로 부치는 거예요.",
+   "kind": "일기",
+   "format": "hand",
+   "origin": "제3구역",
+   "pages": 1,
+   "decl": {
+    "kind": "일기",
+    "origin": "제3구역",
+    "pages": 1
+   },
+   "body": "손주가 떠난 뒤로 밤새 울음이 멈추지 않았다.",
+   "violations": [],
+   "reactPass": "고맙습니다. 그럼 이만.",
+   "reactDeny": "이걸 막으시면 곤란한데요.",
+   "role": "practice",
+   "expect": [],
+   "editable": false,
+   "sims": [
+    {
+     "word": "울음이",
+     "lemma": "울음",
+     "target": "감정어",
+     "value": 80
+    }
+   ],
+   "verdict": {
+    "legal": true,
+    "accept": [
+     "PASS"
+    ],
+    "rules": []
+   },
+   "auditP": 0,
+   "react": {
+    "PASS": [
+     "고맙습니다. 그럼 이만.",
+     "네, 수고 많으십니다."
+    ],
+    "DENY": [
+     "이걸 막으시면 곤란한데요.",
+     "그렇군요. 알겠습니다."
+    ]
+   },
+   "stats": {
+    "PASS": {
+     "credit": 5
+    },
+    "DENY": {
+     "complaintP": 0.5
+    },
+    "EDIT_WRONG": {
+     "complaintP": 0.5,
+     "editUsed": 1
+    }
+   }
+  },
+  {
+   "id": "D7-6",
+   "visitor": "제1구역 청년",
+   "charId": "citizen",
+   "greeting": "엽서 한 장입니다.",
+   "kind": "엽서",
+   "format": "hand",
+   "origin": "제1구역",
+   "pages": 1,
+   "decl": {
+    "kind": "엽서",
+    "origin": "제1구역",
+    "pages": 1
+   },
+   "body": "새 운동화 신고 달리니까 날개 단 것 같아!",
+   "violations": [],
+   "reactPass": "다행이네요. 감사합니다.",
+   "reactDeny": "네? 이게 왜 안 된다는 거죠?",
+   "role": "practice",
+   "expect": [],
+   "editable": false,
+   "sims": [
+    {
+     "word": "새",
+     "lemma": "새",
+     "target": "자유",
+     "value": 45
+    },
+    {
+     "word": "날개",
+     "lemma": "날개",
+     "target": "자유",
+     "value": 61
+    }
+   ],
+   "verdict": {
+    "legal": true,
+    "accept": [
+     "PASS"
+    ],
+    "rules": []
+   },
+   "auditP": 0,
+   "react": {
+    "PASS": [
+     "다행이네요. 감사합니다.",
+     "수고하세요, 심사관님."
+    ],
+    "DENY": [
+     "네? 이게 왜 안 된다는 거죠?",
+     "…알겠습니다. 규칙이라면요."
+    ]
+   },
+   "stats": {
+    "PASS": {
+     "credit": 5
+    },
+    "DENY": {
+     "complaintP": 0.5
+    },
+    "EDIT_WRONG": {
+     "complaintP": 0.5,
+     "editUsed": 1
+    }
+   }
+  },
+  {
+   "id": "D7-7",
+   "visitor": "제2구역 철물점",
+   "charId": "citizen",
+   "greeting": "가게 영수증이에요.",
+   "kind": "영수증",
+   "format": "printed",
+   "origin": "제2구역",
+   "pages": 1,
+   "decl": {
+    "kind": "영수증",
+    "origin": "제2구역",
+    "pages": 1
+   },
+   "body": "제2구역 철물점 영수증: 경첩 2개, 나사 한 봉지. 합계 6크레딧.",
+   "violations": [],
+   "reactPass": "감사합니다.",
+   "reactDeny": "압수라니요, 다시 한 번 봐 주세요.",
+   "role": "background",
+   "expect": [],
+   "editable": false,
+   "sims": [],
+   "verdict": {
+    "legal": true,
+    "accept": [
+     "PASS"
+    ],
+    "rules": []
+   },
+   "auditP": 0,
+   "react": {
+    "PASS": [
+     "감사합니다.",
+     "수고하세요."
+    ],
+    "DENY": [
+     "압수라니요, 다시 한 번 봐 주세요.",
+     "어쩔 수 없죠. 다시 써 오겠습니다."
+    ],
+    "SCAN": [
+     "어, 경보가 울리네요? …인쇄물이라 그런가요."
+    ]
+   },
+   "stats": {
+    "PASS": {
+     "credit": 5
+    },
+    "DENY": {
+     "complaintP": 0.5
+    },
+    "EDIT_WRONG": {
+     "complaintP": 0.5,
+     "editUsed": 1
+    }
+   }
+  },
+  {
+   "id": "D7-8",
+   "visitor": "제3구역 학생",
+   "charId": "citizen",
+   "greeting": "짧은 엽서예요. 금방 보실 거예요.",
+   "kind": "엽서",
+   "format": "hand",
+   "origin": "제3구역",
+   "pages": 1,
+   "decl": {
+    "kind": "엽서",
+    "origin": "제3구역",
+    "pages": 1
+   },
+   "body": "방학엔 여유 있게 늦잠 자고 책 읽을래.",
+   "violations": [],
+   "reactPass": "고맙습니다. 그럼 이만.",
+   "reactDeny": "이걸 막으시면 곤란한데요.",
+   "role": "practice",
+   "expect": [],
+   "editable": false,
+   "sims": [
+    {
+     "word": "여유",
+     "lemma": "여유",
+     "target": "자유",
+     "value": 52
+    }
+   ],
+   "verdict": {
+    "legal": true,
+    "accept": [
+     "PASS"
+    ],
+    "rules": []
+   },
+   "auditP": 0,
+   "react": {
+    "PASS": [
+     "고맙습니다. 그럼 이만.",
+     "네, 수고 많으십니다."
+    ],
+    "DENY": [
+     "이걸 막으시면 곤란한데요.",
+     "그렇군요. 알겠습니다."
+    ]
+   },
+   "stats": {
+    "PASS": {
+     "credit": 5
+    },
+    "DENY": {
+     "complaintP": 0.5
+    },
+    "EDIT_WRONG": {
+     "complaintP": 0.5,
+     "editUsed": 1
+    }
+   }
+  },
+  {
+   "id": "D7-9",
+   "visitor": "제2구역 이웃",
+   "charId": "citizen",
+   "greeting": "쪽지 하나 전하려고요.",
+   "kind": "메모",
+   "format": "hand",
+   "origin": "제2구역",
+   "pages": 1,
+   "decl": {
+    "kind": "메모",
+    "origin": "제2구역",
+    "pages": 1
+   },
+   "body": "302호 택배 대신 받아 두었습니다. 저녁에 찾아가세요.",
+   "violations": [],
+   "reactPass": "다행이네요. 감사합니다.",
+   "reactDeny": "네? 이게 왜 안 된다는 거죠?",
+   "role": "background",
+   "expect": [],
+   "editable": false,
+   "sims": [],
+   "verdict": {
+    "legal": true,
+    "accept": [
+     "PASS"
+    ],
+    "rules": []
+   },
+   "auditP": 0,
+   "react": {
+    "PASS": [
+     "다행이네요. 감사합니다.",
+     "수고하세요, 심사관님."
+    ],
+    "DENY": [
+     "네? 이게 왜 안 된다는 거죠?",
+     "…알겠습니다. 규칙이라면요."
+    ]
+   },
+   "stats": {
+    "PASS": {
+     "credit": 5
+    },
+    "DENY": {
+     "complaintP": 0.5
+    },
+    "EDIT_WRONG": {
+     "complaintP": 0.5,
+     "editUsed": 1
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,292 @@
+{
+ "day": 1,
+ "dateLabel": "11월 1일 (D1)",
+ "noticeTitle": "경계 세관 공문 제1호",
+ "noticeMeta": "2087.11.01 / 국장 문태오",
+ "noticeItems": [
+  "1. 명시 금지 (R01): 통제 어휘가 표기 그대로(활용형·파생형 포함) 들어간 화물은 압수한다.",
+  "2. 1등급 삭제어 지정 (W1): 「자유」",
+  "3. 인쇄물의 명시 금지어는 게이트 스캐너가 즉시 적발한다."
+ ],
+ "noticeExamples": "공개 예시 (NULL 원장): 자유롭다(위반 · R01) / 자유로이(위반 · R01)",
+ "tutorialNote": "첫 출근입니다. 두 번째 화물을 내보낼 때까지 근무 시계는 흐르지 않습니다. 본문을 읽고 통과 또는 압수 도장을 찍으세요.",
+ "eveningIntro": [
+  {
+   "s": "윤희",
+   "t": "첫 출근 어땠어? 제7창구라더니 많이 춥지 않아?"
+  },
+  {
+   "s": "하람",
+   "t": "{부모호칭}, 오늘 학교에서 표준어 시험 백 점 받았어요! '만족도 0.73입니다!'"
+  },
+  {
+   "s": "서연",
+   "t": "…그래, 하람아. 잘했구나. (당신에게 나직이) 창구 번호가 일곱이라고? …그래, 좋은 숫자지."
+  }
+ ],
+ "act": 1,
+ "title": "첫 출근",
+ "examples": [],
+ "storyNote": "국장이 공문을 건네기 전 인사 서류를 한참 본다: \"…자네가 7창구군. 앉게.\" (D10 반전 단서)",
+ "queueCount": 4,
+ "cargos": [
+  {
+   "id": "D1-1",
+   "visitor": "제1구역 주민",
+   "charId": "citizen",
+   "greeting": "오늘 만족도 0.73입니다. 제주 엽서 한 장 부치려고요.",
+   "kind": "엽서",
+   "format": "printed",
+   "origin": "제1구역",
+   "pages": 1,
+   "body": "제주에 와 보니 바람이 자유롭다. 다음엔 같이 오자.",
+   "violations": [
+    {
+     "word": "자유롭다",
+     "rule": "R01",
+     "target": "자유",
+     "grade": 1,
+     "at": 4,
+     "uneditable": true,
+     "lemma": "자유"
+    }
+   ],
+   "tutorialTip": "국장 문태오: \"판정 근거는 규칙집 첫 장 아래 칸을 보게.\" — 도장은 1(통과)·2(압수)입니다. 압수 도장을 찍으면 사유를 고르는 창이 열립니다.",
+   "reactPass": "감사합니다. 엽서 잘 부탁드려요.",
+   "reactDeny": "아니, 엽서 한 장인데요?",
+   "expect": [
+    "R01"
+   ],
+   "role": "practice",
+   "tutorial": true,
+   "react": {
+    "PASS": [
+     "감사합니다. 엽서 잘 부탁드려요."
+    ],
+    "DENY": [
+     "아니, 엽서 한 장인데요?",
+     "아, 그런가요… 알겠습니다."
+    ],
+    "SCAN": [
+     "어, 통과됐네요? …잠깐, 게이트 스캐너 경보음이 울립니다!"
+    ]
+   },
+   "editable": false,
+   "sims": [
+    {
+     "word": "바람이",
+     "lemma": "바람",
+     "target": "자유",
+     "value": 44
+    },
+    {
+     "word": "자유롭다",
+     "lemma": "자유",
+     "target": "자유",
+     "value": 100
+    }
+   ],
+   "verdict": {
+    "legal": false,
+    "accept": [
+     "DENY"
+    ],
+    "rules": [
+     "R01"
+    ]
+   },
+   "auditP": 1,
+   "stats": {
+    "PASS": {
+     "SLIPPED": {},
+     "CAUGHT": {
+      "S": 12,
+      "warning": 1
+     }
+    },
+    "DENY": {
+     "credit": 5
+    }
+   }
+  },
+  {
+   "id": "D1-2",
+   "visitor": "제2구역 공장 노동자",
+   "charId": "citizen",
+   "greeting": "오늘 만족도 0.73입니다. 어머니께 보내는 편지입니다.",
+   "kind": "개인 서신",
+   "format": "hand",
+   "origin": "제2구역",
+   "pages": 1,
+   "body": "어머니, 공장 교대 시간이 바뀌어서 이번 주엔 못 갑니다. 감기 조심하시고 밥 꼭 챙겨 드세요.",
+   "violations": [],
+   "tutorialTip": "도장을 찍으면 화물이 창구 밖으로 나갑니다. 이 화물을 내보낸 다음부터 근무 시계가 흐릅니다.",
+   "reactPass": "고맙습니다. 그럼 이만.",
+   "reactDeny": "이걸 막으시면 곤란한데요.",
+   "expect": [],
+   "role": "practice",
+   "tutorial": true,
+   "editable": false,
+   "sims": [],
+   "verdict": {
+    "legal": true,
+    "accept": [
+     "PASS"
+    ],
+    "rules": []
+   },
+   "auditP": 0,
+   "react": {
+    "PASS": [
+     "고맙습니다. 그럼 이만.",
+     "네, 수고 많으십니다."
+    ],
+    "DENY": [
+     "이걸 막으시면 곤란한데요.",
+     "그렇군요. 알겠습니다."
+    ]
+   },
+   "stats": {
+    "PASS": {
+     "credit": 5
+    },
+    "DENY": {
+     "complaintP": 0.5
+    },
+    "EDIT_WRONG": {
+     "complaintP": 0.5,
+     "editUsed": 1
+    }
+   }
+  },
+  {
+   "id": "D1-3",
+   "visitor": "제1구역 반장",
+   "charId": "citizen",
+   "greeting": "자치회 공지문입니다. 빠르게 봐주세요.",
+   "kind": "안내문",
+   "format": "printed",
+   "origin": "제1구역",
+   "pages": 1,
+   "body": "제1구역 주민 자치회 공지: 이번 토요일 오전 9시 배수로 청소가 있습니다. 장갑 지참 바랍니다.",
+   "violations": [],
+   "reactPass": "다행이네요. 감사합니다.",
+   "reactDeny": "네? 이게 왜 안 된다는 거죠?",
+   "expect": [],
+   "role": "build",
+   "editable": false,
+   "sims": [],
+   "verdict": {
+    "legal": true,
+    "accept": [
+     "PASS"
+    ],
+    "rules": []
+   },
+   "auditP": 0,
+   "react": {
+    "PASS": [
+     "다행이네요. 감사합니다.",
+     "수고하세요, 심사관님."
+    ],
+    "DENY": [
+     "네? 이게 왜 안 된다는 거죠?",
+     "…알겠습니다. 규칙이라면요."
+    ],
+    "SCAN": [
+     "어, 경보가 울리네요? …인쇄물이라 그런가요."
+    ]
+   },
+   "stats": {
+    "PASS": {
+     "credit": 5
+    },
+    "DENY": {
+     "complaintP": 0.5
+    },
+    "EDIT_WRONG": {
+     "complaintP": 0.5,
+     "editUsed": 1
+    }
+   }
+  },
+  {
+   "id": "D1-4",
+   "visitor": "제3구역 청년",
+   "charId": "citizen",
+   "greeting": "옛날 책 제목을 물어보는 쪽지예요.",
+   "kind": "개인 서신",
+   "format": "hand",
+   "origin": "제3구역",
+   "pages": 1,
+   "body": "철수야, 예전에 우리가 읽던 그 책 제목이 자유의 끝이었나? 도무지 기억이 안 나네.",
+   "violations": [
+    {
+     "word": "자유의",
+     "rule": "R01",
+     "target": "자유",
+     "grade": 1,
+     "at": 7,
+     "uneditable": true,
+     "lemma": "자유"
+    }
+   ],
+   "reactPass": "감사합니다.",
+   "reactDeny": "압수라니요, 다시 한 번 봐 주세요.",
+   "expect": [
+    "R01"
+   ],
+   "role": "core",
+   "storyNote": "『자유의 끝』은 한결의 금서 시집 (D12 회수)",
+   "setFlags": {
+    "onStamp": {
+     "D1-4.결과": {
+      "PASS": "PASS",
+      "DENY": "DENY"
+     }
+    }
+   },
+   "editable": false,
+   "sims": [
+    {
+     "word": "자유의",
+     "lemma": "자유",
+     "target": "자유",
+     "value": 100
+    }
+   ],
+   "verdict": {
+    "legal": false,
+    "accept": [
+     "DENY"
+    ],
+    "rules": [
+     "R01"
+    ]
+   },
+   "auditP": 0.3,
+   "react": {
+    "PASS": [
+     "감사합니다.",
+     "수고하세요."
+    ],
+    "DENY": [
+     "압수라니요, 다시 한 번 봐 주세요.",
+     "어쩔 수 없죠. 다시 써 오겠습니다."
+    ]
+   },
+   "stats": {
+    "PASS": {
+     "SLIPPED": {},
+     "CAUGHT": {
+      "S": 12,
+      "warning": 1
+     }
+    },
+    "DENY": {
+     "credit": 5
+    }
+   }
+  }
+ ]
+}
