@@ -1748,9 +1748,9 @@ button:disabled { opacity: 0.42; cursor: not-allowed; }
     if (expr === '외투 구매') return !!f['외투'];
     if (expr === '외투 미구매') return !f['외투'];
     if (expr === '모리 체포') return f['#10'] === '수락';
-    if (expr === 'D19=통과·미적발 또는 수정') return ['SLIPPED', 'EDIT', 'EDIT_HI', 'EDIT_MID', 'EDIT_LO'].includes(f['D19.국장']);
+    if (expr === 'D19=통과·미적발 또는 수정') return ['PASS', 'SLIPPED', 'EDIT', 'EDIT_HI', 'EDIT_MID', 'EDIT_LO'].includes(f['D19.국장']);
     if (expr === 'D19=통과·적발') return f['D19.국장'] === 'CAUGHT';
-    if (expr === 'D19=압수') return f['D19.국장'] === 'DENY';
+    if (expr === 'D19=압수') return ['DENY', 'EDIT_BAD'].includes(f['D19.국장']);
     let m;
     if ((m = expr.match(/^(.+?)∈\{(.+)\}$/))) {
       const val = String(f[m[1].trim()] ?? '');
@@ -1847,7 +1847,11 @@ button:disabled { opacity: 0.42; cursor: not-allowed; }
       return lead + bareInput + trail;
     }
 
-    const particleMatch = bareOrig.match(/(은|는|이|가|을|를|과|와|으로|로|의|에|도|만)$/);
+    if (/하는$/.test(bareOrig) && /다$/.test(vLemma) && bareInput === vLemma) {
+      return lead + vLemma.slice(0, -1) + '는' + trail;
+    }
+    const nonParticleWords = new Set(['자꾸만', '그만', '다만', '오직']);
+    const particleMatch = !nonParticleWords.has(bareOrig) && bareOrig.match(/(은|는|이|가|을|를|과|와|으로|로|의|에|도|만)$/);
     if (particleMatch && !/다$/.test(vLemma) && bareInput === vLemma) {
       return lead + adaptParticle(vLemma, particleMatch[1]) + trail;
     }
