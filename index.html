@@ -1319,6 +1319,65 @@ button:active:not(:disabled) {
 .dial-mode-tabs button { font-size: 0.68rem; padding: 2px 7px; }
 .dial-mode-tabs button.active { background: rgba(53,242,160,0.18); border-color: #35F2A0; color: #35F2A0; }
 
+
+/* === 5 PLAYER-DRIVEN FEATURES CSS === */
+.sticky-note-panel {
+  position: absolute; top: 10px; right: 12px; z-index: 40;
+  width: 210px; background: #F5E6A3; color: #231F14;
+  border: 1px solid #B59E42; border-radius: 3px;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.55);
+  padding: 8px; display: none; flex-direction: column; gap: 5px;
+  font-family: var(--font-serif);
+}
+.sticky-note-panel.open { display: flex; }
+.sticky-note-head {
+  display: flex; justify-content: space-between; align-items: center;
+  font-family: var(--font-ui); font-size: 0.72rem; font-weight: 800;
+  border-bottom: 1px dashed #9E8834; padding-bottom: 4px; color: #5C4B12;
+}
+.sticky-note-head button {
+  padding: 1px 6px; font-size: 0.68rem; background: #3A3010; color: #F5E6A3; border: none; box-shadow: none;
+}
+.sticky-note-area {
+  width: 100%; height: 82px; resize: none; border: none; outline: none;
+  background: transparent; color: #231F14; font-family: var(--font-ui);
+  font-size: 0.76rem; line-height: 1.5;
+}
+.question-btn {
+  width: 100%; padding: 6px 8px; font-size: 0.78rem;
+  background: linear-gradient(180deg, #273848 0%, #1A2632 100%) !important;
+  border: 1px solid #60A5FA !important; color: #DBEAFE !important;
+}
+.newspaper-strip {
+  max-width: 620px; width: 100%; margin-bottom: 10px;
+  background: #141B22; color: #E2E8F0;
+  border: 1px solid #3C4D5E; border-left: 4px solid #F4B942;
+  padding: 10px 14px; border-radius: 4px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+}
+.newspaper-kicker {
+  font-size: 0.7rem; color: #F4B942; font-weight: 800; letter-spacing: 0.08em; margin-bottom: 3px;
+}
+.newspaper-headline {
+  font-family: var(--font-serif); font-size: 0.94rem; font-weight: 700; color: #F8FAFC;
+}
+.timeline-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-bottom: 16px;
+}
+.timeline-node {
+  background: #1B2530; border: 1px solid #38495B; border-radius: 5px; padding: 9px 10px;
+  text-align: left; display: flex; flex-direction: column; gap: 3px;
+}
+.timeline-node:hover { border-color: #F4B942; background: #23303E; }
+.ending-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 7px;
+}
+.ending-tile {
+  background: #12181F; border: 1px solid #2A3846; border-radius: 5px; padding: 8px 9px;
+  font-size: 0.75rem; line-height: 1.45;
+}
+.ending-tile.unlocked { border-color: #F4B942; background: rgba(244,185,66,0.09); }
+
 </style>
 </head>
 <body>
@@ -1363,6 +1422,7 @@ button:active:not(:disabled) {
     <div class="title-actions">
       <button id="btn-start-new" class="btn-primary">새 근무 시작 (D1)</button>
       <button id="btn-continue" class="btn-secondary" style="display:none;">이어하기</button>
+      <button id="btn-open-timeline-title" class="btn-secondary">분기 타임라인 · 엔딩(20)</button>
       <button id="btn-open-dict-title" class="btn-secondary">복원 사전</button>
       <button id="btn-open-settings-title" class="btn-secondary">설정</button>
     </div>
@@ -1388,6 +1448,7 @@ button:active:not(:disabled) {
 </section>
 
 <section id="screen-morning" class="screen">
+  <div id="morning-newspaper" class="newspaper-strip" style="display:none;"><div class="newspaper-kicker">중앙구 조간 · 1면 헤드라인</div><div id="newspaper-headline" class="newspaper-headline"></div></div>
   <div class="notice-paper">
     <div class="notice-stamp-top">경계 세관 공문</div>
     <div class="notice-head">
@@ -1420,9 +1481,11 @@ button:active:not(:disabled) {
       <span id="hud-rev-pill" class="plate plate-alert" style="display:none;">개정 적용</span>
       <span id="hud-insp-pill" class="plate plate-alert" style="display:none;">감찰관 동석</span>
       <span id="hud-surge-pill" class="plate plate-alert" style="display:none;">대기열 폭주</span>
+      <span id="hud-quota-pill" class="plate plate-dark" style="display:none;">측정 할당 <strong id="hud-quota">6/6</strong></span>
     </div>
     <div class="top-btns">
       <button id="btn-mobile-rb">규칙집</button>
+      <button id="btn-hud-sticky">포스트잇</button>
       <button id="btn-hud-dict">장부 (F2)</button>
       <button id="btn-hud-mute" class="hide-mobile">소리 ON</button>
       <button id="btn-hud-settings">설정</button>
@@ -1445,6 +1508,7 @@ button:active:not(:disabled) {
         <div id="tutorial-tip-text"></div>
         <div class="tutorial-tip-foot"><button id="btn-tip-ok">확인</button></div>
       </div>
+      <button id="btn-question" class="question-btn" disabled title="선택한 낱말의 의도를 방문객에게 1회 추궁합니다">💬 낱말 추궁 (화물당 1회)</button>
       <button id="btn-bell" class="bell-btn pulse">
         <span>호출 벨 [N]</span>
         <svg width="46" height="32" viewBox="0 0 74 52" class="wobble">
@@ -1457,6 +1521,13 @@ button:active:not(:disabled) {
     </aside>
 
     <main class="desk-col">
+      <div id="sticky-note-panel" class="sticky-note-panel">
+        <div class="sticky-note-head">
+          <span>📌 책상 포스트잇 (감찰관 주의!)</span>
+          <button id="btn-sticky-hide">숨기기</button>
+        </div>
+        <textarea id="sticky-note-area" class="sticky-note-area" placeholder="예: 사랑→아끼다(58) / 자유→여유(56)&#10;감찰관 방문일엔 서랍에 숨기세요!"></textarea>
+      </div>
       <div id="desk-surface" class="desk-surface">
         <div class="desk-empty">제7창구 심사 책상<br>호출 벨을 눌러 화물을 받으세요.</div>
       </div>
@@ -1689,6 +1760,10 @@ button:active:not(:disabled) {
         <input type="checkbox" id="opt-relaxed">
       </label>
       <label style="display:flex;justify-content:space-between;align-items:center;">
+        <span>언어학자 모드 (시간 무제한 · 하루 측정 6회 할당)</span>
+        <input type="checkbox" id="opt-linguist">
+      </label>
+      <label style="display:flex;justify-content:space-between;align-items:center;">
         <span>손글씨를 정자체로 보기</span>
         <input type="checkbox" id="opt-plain-hand">
       </label>
@@ -1709,6 +1784,20 @@ button:active:not(:disabled) {
         <button id="btn-settings-ok" class="btn-primary">닫기</button>
       </div>
     </div>
+  </div>
+</div>
+
+
+<div id="modal-timeline" class="modal-backdrop">
+  <div class="modal-box" style="max-width:720px;">
+    <div class="modal-head">
+      <span>분기 타임라인 · 엔딩 앨범 (20종)</span>
+      <button id="btn-close-timeline" style="padding:2px 8px;">✕</button>
+    </div>
+    <div style="font-size:0.78rem;color:#9CB0C4;margin-bottom:8px;">핵심 스토리 분기점으로 바로 이동해 튜토리얼 반복 없이 다른 루트를 탐색할 수 있습니다.</div>
+    <div id="timeline-grid" class="timeline-grid"></div>
+    <div id="ending-album-title" style="font-size:0.84rem;font-weight:800;color:#F4B942;margin-bottom:8px;">해금된 엔딩 (0/20)</div>
+    <div id="ending-grid" class="ending-grid"></div>
   </div>
 </div>
 
@@ -1895,6 +1984,49 @@ button:active:not(:disabled) {
       + '</div>';
   }
 
+
+  const ENDINGS_KEY = 'word_customs_v4_endings';
+  const STICKY_KEY = 'word_customs_v4_sticky';
+  const ENDINGS_CATALOG = [
+    ['E-01','압수된 사람','의심 S가 100에 도달한다'],
+    ['E-02','반납된 도장','근무 평정이 0 이하로 떨어진다'],
+    ['E-03','주소 없음','집세를 3일 연속 미납한다'],
+    ['E-04','빈 집','서연이 사망하고 윤희·하람도 떠난다'],
+    ['E-05','먼저 떠난 사람','D20에서 T≥60으로 조기 망명을 수락한다'],
+    ['A1','모범 심사관','최종 A(봉인), M≤5, 평정≥80'],
+    ['A2','이름 없는 도장','최종 A(봉인), M≤5, 평정<80'],
+    ['A3','0과 1 사이','최종 A(봉인), 6≤M≤15'],
+    ['A4','두 개의 장부','최종 A(봉인), M≥16'],
+    ['B1','새벽의 사전 (진 엔딩)','최종 B(개방), S<70, T≥70, M≥20'],
+    ['B2','절반의 봄','최종 B(개방), S<70, T≥70, M<20'],
+    ['B3','조용한 저항','최종 B(개방), S<70, 40≤T<70'],
+    ['B4','미끼였던 사전','최종 B(개방), S<70, T<40'],
+    ['B5','마지막 도장','최종 B(개방), S≥70'],
+    ['C1','국경 너머의 편지','최종 C(떠남), S<70, 온 가족 생존·동거'],
+    ['C2','둘이서 떠나다','최종 C(떠남), S<70, 서연 사망 또는 가족 떠남'],
+    ['C3','반대편 창구','최종 C(떠남), S≥70'],
+    ['D1','NULL의 질문 (숨은 엔딩)','최종 D(고쳐 쓰기), S<70, Q≥85, M+E≥30'],
+    ['D2','번역된 사랑','최종 D(고쳐 쓰기), S<70, Q≥85, M+E<30'],
+    ['D3','들킨 은유','최종 D(고쳐 쓰기), S≥70 또는 Q<85']
+  ];
+  const TIMELINE_BRANCHES = [
+    { day: 3,  tag: 'D3 · 딜레마 #1', title: '하준 엄마의 마지막 편지' },
+    { day: 5,  tag: 'D5 · 딜레마 #2', title: '노을의 가사 · 감정어' },
+    { day: 9,  tag: 'D9 · 딜레마 #3', title: '두더지의 뇌물 · 감찰관' },
+    { day: 11, tag: 'D11 · 딜레마 #4', title: '모리의 제안 · 위조 허가증' },
+    { day: 15, tag: 'D15 · 딜레마 #5', title: '감찰관의 미끼 화물' },
+    { day: 19, tag: 'D19 · 딜레마 #7', title: '국장 문태오의 편지' },
+    { day: 21, tag: 'D21 · 딜레마 #9', title: '박 주임 체포 · 증언' },
+    { day: 25, tag: 'D25 · 딜레마 #10', title: 'NULL의 거래' },
+    { day: 26, tag: 'D26 · 딜레마 #11', title: '가족 탈출증' },
+    { day: 30, tag: 'D30 · 최종 선택', title: '마지막 화물 「사전」' }
+  ];
+  let unlockedEndings = (() => { try { return JSON.parse(localStorage.getItem(ENDINGS_KEY) || '{}'); } catch { return {}; } })();
+  function saveUnlockedEnding(id, title, desc) {
+    unlockedEndings[id] = { title, desc, at: new Date().toISOString().slice(0, 10) };
+    try { localStorage.setItem(ENDINGS_KEY, JSON.stringify(unlockedEndings)); } catch {}
+  }
+
   const SAVE_KEY = 'word_customs_v4_save';
   const DICT_KEY = 'word_customs_v4_dict';
 
@@ -1941,12 +2073,16 @@ button:active:not(:disabled) {
       meterView: 'dial',
       lastMeterRes: null,
       lastNullSlitAt: 0,
+      stickyOpen: false,
+      stickyCaughtToday: false,
+      dayMeasureQuota: 6,
+      dayMeasureUsed: 0,
       flags: { '부모호칭': '아빠', '윤희호칭': '엄마', '하람옛말': 0, 'rel.노을': 0, 'rel.모리': 0, 'rel.국장': 0, 'rel.윤희': 0 },
       memos: [],
       familyMemos: [],
       seoyeonQueue: [],
       seoyeonNotes: [],
-      settings: { relaxed: false, plainHand: false, colorblind: false, fontSize: 'md' },
+      settings: { relaxed: false, linguist: false, plainHand: false, colorblind: false, fontSize: 'md' },
       clockMins: 0,
       clockRunning: false,
       overtimeUsed: false,
@@ -2058,7 +2194,7 @@ button:active:not(:disabled) {
   }
 
   function isClockPaused() {
-    if (!state.clockRunning) return true;
+    if (!state.clockRunning || (state.settings && state.settings.linguist)) return true;
     if (state.paused || state.measuring || state.tipActive || state.dilemmaOpen || state.revisionOpen) return true;
     if ($('modal-settings').classList.contains('active')) return true;
     if ($('modal-deny').classList.contains('active')) return true;
@@ -2073,6 +2209,7 @@ button:active:not(:disabled) {
     if (state.settings.fontSize === 'sm') document.body.classList.add('font-sm');
     if (state.settings.fontSize === 'lg') document.body.classList.add('font-lg');
     $('opt-relaxed').checked = !!state.settings.relaxed;
+    if ($('opt-linguist')) $('opt-linguist').checked = !!state.settings.linguist;
     $('opt-plain-hand').checked = !!state.settings.plainHand;
     $('opt-colorblind').checked = !!state.settings.colorblind;
     document.querySelectorAll('.opt-font-btn').forEach(b => {
@@ -2320,6 +2457,28 @@ button:active:not(:disabled) {
     state.meterBrokenUntil = 0;
     state.meterBrokenDone = false;
     state.eveningEventDone = false;
+    state.stickyCaughtToday = false;
+    state.dayMeasureQuota = state.meterLv >= 3 ? 10 : (state.meterLv === 2 ? 8 : 6);
+    state.dayMeasureUsed = 0;
+
+    // 아침 신문 1면 헤드라인 생성 (어제의 선택·언어 전염·의심 반영)
+    const newsEl = $('morning-newspaper');
+    const hlEl = $('newspaper-headline');
+    if (newsEl && hlEl) {
+      let hl = '';
+      const driftKeys = Object.keys(state.driftWords || {});
+      if (dayNum === 4 && state.flags['D3.하준'] === 'EDIT') hl = '제3구역 요양소발 편지 속 "아끼다" 표현, 시민들 사이 잔잔한 반향';
+      else if (dayNum === 4 && state.flags['D3.하준'] === 'PASS') hl = '당국, 제3구역 요양소발 미심사 서신 유출 경위 조사 착수';
+      else if (dayNum === 6 && ['PASS','SLIPPED','EDIT'].includes(state.flags['D5-3'])) hl = '제3구역 빗속 골목서 무허가 노래 공연… 주민 수십 명 모여 합창';
+      else if (dayNum === 16 && state.flags['D15.미끼'] === 'DENY') hl = '언어관리청, 제7창구 심사관의 위장 화물 간파 성과 높이 평가';
+      else if (dayNum === 20 && ['PASS','SLIPPED','EDIT'].includes(state.flags['D19.국장'])) hl = '중앙구 우정국, 오래 끊겼던 가족 서신 1건 정상 배달 확인';
+      else if (state.S >= 50) hl = '언어관리청 "경계 세관 내부 감찰 대폭 강화… 비인가 행위 엄단"';
+      else if (driftKeys.length > 0 && dayNum >= 5) hl = 'NULL 경보: 신종 우회 어휘 「' + driftKeys[driftKeys.length - 1] + '」 사용량 급증 감시';
+      else if (dayNum > 1) hl = '표준 어휘 준수율 94.2% 달성… NULL "언어 효율화 순항 중"';
+      if (hl) { newsEl.style.display = 'block'; hlEl.textContent = hl; }
+      else { newsEl.style.display = 'none'; }
+    }
+
     if (state.seoyeonSadDays > 0) state.seoyeonSadDays--;
 
     const dObjToday = DAYS_DATA[dayNum];
@@ -2412,6 +2571,7 @@ button:active:not(:disabled) {
     $('hud-rev-pill').style.display = 'none';
     $('hud-insp-pill').style.display = INSPECTOR_DAYS_SET.has(state.day) ? 'inline-flex' : 'none';
     $('hud-surge-pill').style.display = SURGE_DAYS.has(state.day) ? 'inline-flex' : 'none';
+    $('hud-quota-pill').style.display = state.settings.linguist ? 'inline-flex' : 'none';
 
     populateMeterTargets();
     renderMeterDial(null, 70, 70);
@@ -2518,6 +2678,7 @@ button:active:not(:disabled) {
     $('hud-family-pill').classList.toggle('plate-alert', state.foodMissed >= 1 || state.familyGone);
     $('hud-warn-pill').style.display = state.dayWarnings > 0 ? 'inline-flex' : 'none';
     $('hud-warns').textContent = state.dayWarnings;
+    if ($('hud-quota-pill')) { $('hud-quota-pill').style.display = state.settings.linguist ? 'inline-flex' : 'none'; $('hud-quota').textContent = Math.max(0, state.dayMeasureQuota - state.dayMeasureUsed) + '/' + state.dayMeasureQuota; }
     $('rack-edit-quota').textContent = state.day >= 23 ? ('수정 잔여 ' + Math.max(0, 4 - state.dayEditsUsed) + '/4') : '';
     updateClockUI();
   }
@@ -2528,6 +2689,7 @@ button:active:not(:disabled) {
     $('btn-stamp-deny').disabled = !canJudge;
     $('btn-stamp-edit').disabled = !canJudge;
     $('btn-stamp-redact').disabled = !canJudge;
+    if ($('btn-question')) $('btn-question').disabled = !(canJudge && state.probeWord && !state.currentCargo._questioned);
     $('btn-stamp-edit').classList.toggle('active-tool', state.editMode);
     $('btn-compare').classList.toggle('active', state.compareMode);
 
@@ -2756,6 +2918,7 @@ button:active:not(:disabled) {
     cargo._phase = currentPhase();
     cargo._eval = evaluateCargoDisplay(cargo, cargo._phase);
     cargo._measured = false;
+    cargo._questioned = false;
     cargo._openedAt = state.clockMins;
     if (cargo.resistance) state.resCargosSeen++;
     state.currentCargo = cargo;
@@ -3127,6 +3290,7 @@ button:active:not(:disabled) {
   function selectProbeWord(raw) {
     state.probeWord = raw;
     $('meter-probe').textContent = LEX.lemmaOf(raw);
+    updateToolButtons();
     renderDeskCargo();
   }
 
@@ -3177,7 +3341,13 @@ button:active:not(:disabled) {
     }
     const targetKey = state.meterTarget || '자유';
     const costTable = state.meterLv >= 3 ? { fast: 10, fine: 20 } : (state.meterLv === 2 ? { fast: 12, fine: 24 } : { fast: 15, fine: 30 });
+    if (state.settings.linguist && state.dayMeasureUsed >= state.dayMeasureQuota) {
+      SFX.warn();
+      toast('언어학자 모드: 오늘의 측정기 연산 할당(' + state.dayMeasureQuota + '회)을 모두 사용했습니다!', 'err');
+      return;
+    }
     const cost = mode === 'fine' ? costTable.fine : costTable.fast;
+    if (state.settings.linguist) { state.dayMeasureUsed++; updateWorkHUD(); }
     if (state.currentCargo) { const was = state.currentCargo._measured; state.currentCargo._measured = true; if (!was && isMeasureRequired(state.currentCargo)) renderDeskCargo(); }
     const origin = state.currentCargo ? state.currentCargo.origin : '제1구역';
     const ph = state.currentCargo ? cargoPhase(state.currentCargo) : currentPhase();
@@ -3524,6 +3694,74 @@ button:active:not(:disabled) {
   }
 
 
+
+  function checkInspectorStickyNote() {
+    if (INSPECTOR_DAYS_SET.has(state.day) && state.stickyOpen && !state.stickyCaughtToday) {
+      state.stickyCaughtToday = true;
+      SFX.warn();
+      addWarning('감찰관에게 책상 포스트잇 적발');
+      state.S = Math.min(100, state.S + 5);
+      toast('감찰관 고윤: "심사관 책상에 비인가 메모가 붙어 있군요." (경고 · 의심 상승)', 'err');
+    }
+  }
+
+  function questionVisitor() {
+    const c = state.currentCargo;
+    if (!c || !state.envelopeOpened || state.stamped || c._questioned || !state.probeWord) return;
+    c._questioned = true;
+    const raw = state.probeWord;
+    const lemma = LEX.lemmaOf(raw);
+    const ev = c._eval || evaluateCargoDisplay(c, cargoPhase(c));
+    SFX.nullBeep();
+
+    // 1. Check safe homonym sense (R07)
+    const senseRes = LOCALE ? LOCALE.checkSafeSense(c, raw, lemma) : null;
+    if (senseRes && senseRes.safe) {
+      $('visitor-portrait').innerHTML = renderPortraitSVG(c.charId, 'normal');
+      $('visitor-speech').textContent = '"아, 「' + raw + '」 말씀이세요? 그건 금지된 뜻이 아니라 「' + senseRes.sense + '」 뜻으로 쓴 거예요!"';
+      toast('추궁 단서: 허용된 동음이의어 뜻("' + senseRes.sense + '")을 확인했습니다.');
+    } else if (ev.violations.some(v => v.word === raw || v.lemma === lemma || LEX.lemmaOf(v.word) === lemma)) {
+      $('visitor-portrait').innerHTML = renderPortraitSVG(c.charId, 'sad');
+      $('visitor-speech').textContent = '"…「' + raw + '」요? 별 뜻은 없었어요. 그냥 다른 말로 돌려 써 보고 싶었을 뿐이에요…"';
+      toast('추궁 단서: 방문객이 당황하며 말을 돌립니다. (위반 의심 높음)', 'warn');
+    } else {
+      $('visitor-portrait').innerHTML = renderPortraitSVG(c.charId, 'normal');
+      $('visitor-speech').textContent = '"「' + raw + '」 말인가요? 그냥 평범하게 쓴 말인데, 문제가 되나요?"';
+      toast('추궁 결과: 특이 반응 없음.');
+    }
+    updateToolButtons();
+  }
+
+  function openTimelineModal() {
+    const grid = $('timeline-grid');
+    grid.innerHTML = TIMELINE_BRANCHES.map(b =>
+      '<button class="timeline-node" data-tl-day="' + b.day + '"><span style="font-size:0.7rem;color:#F4B942;font-weight:800;">' + b.tag + '</span><strong style="font-size:0.82rem;">' + b.title + '</strong></button>'
+    ).join('');
+    grid.querySelectorAll('[data-tl-day]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const d = Number(btn.dataset.tlDay);
+        $('modal-timeline').classList.remove('active');
+        const p = state.flags['부모호칭'] || '아빠';
+        state = createFreshState(d);
+        state.flags['부모호칭'] = p;
+        state.flags['윤희호칭'] = p === '아빠' ? '엄마' : '아빠';
+        applySettings();
+        startDayMorning(d);
+      });
+    });
+
+    const unlockedCnt = ENDINGS_CATALOG.filter(([id]) => unlockedEndings[id]).length;
+    $('ending-album-title').textContent = '해금된 엔딩 (' + unlockedCnt + '/20)';
+    $('ending-grid').innerHTML = ENDINGS_CATALOG.map(([id, name, hint]) => {
+      const got = unlockedEndings[id];
+      return '<div class="ending-tile ' + (got ? 'unlocked' : '') + '">'
+        + '<div style="font-weight:800;color:' + (got ? '#F4B942' : '#7A8B9C') + ';">' + id + ' · ' + (got ? name : '???') + '</div>'
+        + '<div style="color:#9CB0C4;margin-top:2px;">' + (got ? got.desc : ('힌트: ' + hint)) + '</div>'
+        + '</div>';
+    }).join('');
+    $('modal-timeline').classList.add('active');
+  }
+
   function stampRedact() {
     const c = state.currentCargo;
     if (state.day < 3 || !c || !state.envelopeOpened || state.stamped || state.dilemmaOpen) return;
@@ -3539,6 +3777,7 @@ button:active:not(:disabled) {
       toast('위반 낱말이 없는 적법 화물입니다. 그대로 통과시키세요.', 'warn');
       return;
     }
+    checkInspectorStickyNote();
     if (isMeasureRequired(c) && !c._measured) addWarning('R15 측정 의무 위반 (의무 화물 미측정)');
     SFX.stamp('deny');
     state.editMode = false;
@@ -3579,6 +3818,7 @@ button:active:not(:disabled) {
     const ph = cargoPhase(c);
     const ev = c._eval || evaluateCargoDisplay(c, ph);
 
+    checkInspectorStickyNote();
     if (isMeasureRequired(c) && !c._measured) addWarning('R15 측정 의무 위반 (의무 화물 미측정)');
     if (INSPECTOR_DAYS_SET.has(state.day) && !c._measured && ev.violations.some(v => v.grade === 1)) {
       toast('감찰관 고윤: "1등급 의심 화물을 측정도 없이 넘겼군요." (주의)', 'warn');
@@ -4247,6 +4487,7 @@ button:active:not(:disabled) {
   }
 
   function showEnding(badge, title, desc) {
+    if (ENDINGS_CATALOG.some(([id]) => id === badge)) saveUnlockedEnding(badge, title, desc);
     $('ending-badge').textContent = badge;
     $('ending-title').textContent = title;
     $('ending-desc').textContent = desc;
@@ -4398,6 +4639,22 @@ button:active:not(:disabled) {
       }
     });
 
+    $('btn-open-timeline-title').addEventListener('click', openTimelineModal);
+    $('btn-close-timeline').addEventListener('click', () => $('modal-timeline').classList.remove('active'));
+    $('btn-question').addEventListener('click', questionVisitor);
+    $('btn-hud-sticky').addEventListener('click', () => {
+      state.stickyOpen = !state.stickyOpen;
+      $('sticky-note-panel').classList.toggle('open', state.stickyOpen);
+    });
+    $('btn-sticky-hide').addEventListener('click', () => {
+      state.stickyOpen = false;
+      $('sticky-note-panel').classList.remove('open');
+    });
+    try { $('sticky-note-area').value = localStorage.getItem(STICKY_KEY) || ''; } catch {}
+    $('sticky-note-area').addEventListener('input', e => {
+      try { localStorage.setItem(STICKY_KEY, e.target.value); } catch {}
+    });
+    $('opt-linguist').addEventListener('change', e => { state.settings.linguist = e.target.checked; applySettings(); updateWorkHUD(); });
     $('btn-open-dict-title').addEventListener('click', openDictModal);
     $('btn-hud-dict').addEventListener('click', openDictModal);
     $('btn-evening-dict').addEventListener('click', openDictModal);
