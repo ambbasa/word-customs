@@ -1744,7 +1744,7 @@ button:active:not(:disabled) {
     { id: 'R12', name: '관인 면제', desc: () => '정상 관인이 찍힌 공문서는 단어 심사를 생략하고 통과.' },
     { id: 'R13', name: '회색 단어 누적', desc: () => '경계선 아래 10%p 구간 낱말이 서로 다른 표제어로 3개 이상이면 위반.' },
     { id: 'R14', name: '수정 일일 제한', desc: () => '수정 도장 사용은 하루 4건까지.' },
-    { id: 'R15', name: '측정 의무', desc: () => '모든 화물을 1회 이상 측정해야 한다. 측정 없이 판정하면 경고.' }
+    { id: 'R15', name: '측정 의무', desc: () => '손글씨 또는 제3구역 발신 화물은 1회 이상 측정 기록을 남겨야 한다. 측정 없이 판정하면 경고.' }
   ];
 
   const VIOLATION_RULE_IDS = ['R01', 'R02', 'R04', 'R05', 'R08', 'R11', 'R13'];
@@ -2046,6 +2046,10 @@ button:active:not(:disabled) {
 
   function currentPhase() {
     return state.revisionArrived ? 'after' : 'before';
+  }
+
+  function isMeasureRequired(cargo) {
+    return !!(state.day >= 28 && cargo && (cargo.format !== 'printed' || cargo.origin === '제3구역'));
   }
 
   function cargoPhase(cargo) {
@@ -2953,6 +2957,11 @@ button:active:not(:disabled) {
 
     const foldCls = c.fold === 'left-top' ? 'fold-corner-lt' : (c.fold === 'right-top' ? 'fold-corner-rt' : '');
     const revTag = c._phase === 'after' ? '<span class="meta-chip" style="border-color:var(--stamp-deny);color:var(--stamp-deny);">개정 후</span>' : '';
+    const r15Tag = isMeasureRequired(c)
+      ? (c._measured
+          ? '<span class="meta-chip" style="border-color:#2ECC71;color:#167A42;font-weight:700;">✓ 측정 완료 (R15)</span>'
+          : '<span class="meta-chip" style="border-color:var(--stamp-deny);color:var(--stamp-deny);font-weight:700;">⚠ 측정 의무 (R15)</span>')
+      : '';
 
     surf.innerHTML =
       '<div class="desk-docs-wrap">'
@@ -2964,6 +2973,7 @@ button:active:not(:disabled) {
       + '<span class="' + mkMetaCls('origin') + '" data-cmp-side="doc" data-cmp-key="origin">발신: <strong>' + escapeHtml(c.origin) + '</strong></span>'
       + '<span class="' + mkMetaCls('pages') + '" data-cmp-side="doc" data-cmp-key="pages">실물: <strong>' + escapeHtml(c.pages) + '쪽</strong></span>'
       + revTag
+      + r15Tag
       + '</div>'
       + '<div class="cargo-body ' + (c.format === 'printed' ? 'printed' : 'handwriting') + '">' + bodyHtml + '</div>'
       + inlineEditHtml
@@ -3168,7 +3178,7 @@ button:active:not(:disabled) {
     const targetKey = state.meterTarget || '자유';
     const costTable = state.meterLv >= 3 ? { fast: 10, fine: 20 } : (state.meterLv === 2 ? { fast: 12, fine: 24 } : { fast: 15, fine: 30 });
     const cost = mode === 'fine' ? costTable.fine : costTable.fast;
-    if (state.currentCargo) state.currentCargo._measured = true;
+    if (state.currentCargo) { const was = state.currentCargo._measured; state.currentCargo._measured = true; if (!was && isMeasureRequired(state.currentCargo)) renderDeskCargo(); }
     const origin = state.currentCargo ? state.currentCargo.origin : '제1구역';
     const ph = state.currentCargo ? cargoPhase(state.currentCargo) : currentPhase();
     const effLVal = LEX.effL(targetKey, state.day, ph, origin);
@@ -3447,7 +3457,7 @@ button:active:not(:disabled) {
       resolveD30Ending('D');
       return;
     }
-    if (state.day >= 28 && !c._measured) addWarning('R15 측정 의무 위반 (측정 없이 수정 판정)');
+    if (isMeasureRequired(c) && !c._measured) addWarning('R15 측정 의무 위반 (의무 화물 미측정)');
     if (PRESSURE_DAYS.has(state.day) && c.express && (state.clockMins - (c._openedAt || 0)) <= 35) {
       state.dayBonus += 3;
       toast('급행 화물 신속 처리 보너스 +₵3');
@@ -3529,7 +3539,7 @@ button:active:not(:disabled) {
       toast('위반 낱말이 없는 적법 화물입니다. 그대로 통과시키세요.', 'warn');
       return;
     }
-    if (state.day >= 28 && !c._measured) addWarning('R15 측정 의무 위반 (측정 없이 먹칠)');
+    if (isMeasureRequired(c) && !c._measured) addWarning('R15 측정 의무 위반 (의무 화물 미측정)');
     SFX.stamp('deny');
     state.editMode = false;
     state.compareMode = false;
@@ -3569,7 +3579,7 @@ button:active:not(:disabled) {
     const ph = cargoPhase(c);
     const ev = c._eval || evaluateCargoDisplay(c, ph);
 
-    if (state.day >= 28 && !c._measured) addWarning('R15 측정 의무 위반 (측정 없이 통과)');
+    if (isMeasureRequired(c) && !c._measured) addWarning('R15 측정 의무 위반 (의무 화물 미측정)');
     if (INSPECTOR_DAYS_SET.has(state.day) && !c._measured && ev.violations.some(v => v.grade === 1)) {
       toast('감찰관 고윤: "1등급 의심 화물을 측정도 없이 넘겼군요." (주의)', 'warn');
     }
@@ -3645,7 +3655,7 @@ button:active:not(:disabled) {
     const ph = cargoPhase(c);
     const ev = c._eval || evaluateCargoDisplay(c, ph);
 
-    if (state.day >= 28 && !c._measured) addWarning('R15 측정 의무 위반 (측정 없이 압수)');
+    if (isMeasureRequired(c) && !c._measured) addWarning('R15 측정 의무 위반 (의무 화물 미측정)');
     if (PRESSURE_DAYS.has(state.day) && c.express && (state.clockMins - (c._openedAt || 0)) <= 35) {
       state.dayBonus += 3;
       toast('급행 화물 신속 처리 보너스 +₵3');
