@@ -89,7 +89,7 @@ function evaluate(c, day, phase = 'before') {
     const sn = senseOf(c, i, tok);
     for (const t of terms) {
       if (t === '감정어' && X.TERMS[lemma] && X.isActive(lemma, day, phase)) continue; // 통제어로 옮겨 간 감정어 (W7)
-      if (t !== lemma && X.TERMS[lemma] && X.TERMS[t].id === X.TERMS[lemma].id && X.isActive(lemma, day, phase)) continue; // 같은 W 묶음(엄마·어머니 등)은 R01 하나로
+      if (t !== lemma && X.TERMS[lemma] && X.isActive(lemma, day, phase)) continue; // 표제어 자체가 활성 통제어면 타 통제어 R02 중복 적발 방지 (D18-3 추억↔그리움 등)
       const ts = trueSim(lemma, t);
       const member = isMember(lemma, t, day, phase);
       const val = member ? 100 : ts.v;

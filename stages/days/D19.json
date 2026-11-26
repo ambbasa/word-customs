@@ -1154,7 +1154,8 @@
       "CAUGHT": "CAUGHT",
       "DENY": "DENY",
       "EDIT": "EDIT"
-     }
+     },
+     "D19.v": "EDIT→v"
     }
    },
    "statsOverride": {
