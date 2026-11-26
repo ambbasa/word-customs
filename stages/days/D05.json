@@ -160,10 +160,10 @@
       "editable": false,
       "sims": [
         {
-          "word": "기쁨이",
-          "lemma": "기쁨",
+          "word": "환희가",
+          "lemma": "환희",
           "target": "감정어",
-          "value": 100
+          "value": 84
         }
       ],
       "verdict": {
@@ -508,10 +508,10 @@
       "editable": false,
       "sims": [
         {
-          "word": "외로움이",
-          "lemma": "외로움",
+          "word": "서글픔이",
+          "lemma": "서글픔",
           "target": "감정어",
-          "value": 100
+          "value": 88
         }
       ],
       "verdict": {

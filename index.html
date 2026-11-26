@@ -1957,7 +1957,7 @@ button:active:not(:disabled) {
       btn.addEventListener('click', () => {
         const parentTitle = state.flags['부모호칭'] || '아빠';
         const prevSettings = Object.assign({}, state.settings);
-        state = createFreshState(d);
+        state = applyJumpPreset(createFreshState(d), d);
         state.settings = prevSettings;
         state.flags['부모호칭'] = parentTitle;
         state.flags['윤희호칭'] = parentTitle === '아빠' ? '엄마' : '아빠';
@@ -1989,6 +1989,7 @@ button:active:not(:disabled) {
 
   const ENDINGS_KEY = 'word_customs_v4_endings';
   const STICKY_KEY = 'word_customs_v4_sticky';
+  const BRANCH_SNAPS_KEY = 'word_customs_v4_branch_snaps';
   const ENDINGS_CATALOG = [
     ['E-01','압수된 사람','의심 S가 100에 도달한다'],
     ['E-02','반납된 도장','근무 평정이 0 이하로 떨어진다'],
@@ -2024,6 +2025,39 @@ button:active:not(:disabled) {
     { day: 30, tag: 'D30 · 최종 선택', title: '마지막 화물 「사전」' }
   ];
   let unlockedEndings = (() => { try { return JSON.parse(localStorage.getItem(ENDINGS_KEY) || '{}'); } catch { return {}; } })();
+  let branchSnaps = (() => { try { return JSON.parse(localStorage.getItem(BRANCH_SNAPS_KEY) || '{}'); } catch { return {}; } })();
+  function saveBranchSnap(dayNum) {
+    if (!TIMELINE_BRANCHES.some(b => b.day === dayNum)) return;
+    try {
+      branchSnaps[String(dayNum)] = {
+        day: dayNum, credits: state.credits, rating: state.rating, S: state.S, T: state.T, M: state.M, E: state.E,
+        editPs: (state.editPs || []).slice(), rentMissed: state.rentMissed, foodMissed: state.foodMissed,
+        heatMissed: state.heatMissed, medMissed: state.medMissed, medGraceUsed: state.medGraceUsed,
+        coldMedDue: state.coldMedDue, medExempt: state.medExempt, familyGone: state.familyGone,
+        seoyeonHealth: state.seoyeonHealth, meterLv: state.meterLv, sentenceMode: state.sentenceMode,
+        prevResPassed: state.prevResPassed, resCargosSeen: state.resCargosSeen,
+        driftWords: Object.assign({}, state.driftWords), flags: Object.assign({}, state.flags),
+        memos: (state.memos || []).slice(0, 40), familyMemos: (state.familyMemos || []).slice(0, 20),
+        seoyeonNotes: (state.seoyeonNotes || []).slice(0, 20)
+      };
+      localStorage.setItem(BRANCH_SNAPS_KEY, JSON.stringify(branchSnaps));
+    } catch {}
+  }
+  function applyJumpPreset(st, d) {
+    if (d >= 30) {
+      st.meterLv = 3; st.sentenceMode = true; st.T = 70; st.M = 20; st.E = 10;
+      st.credits = 80; st.rating = 80; st.editPs = [88, 86, 90, 85, 89];
+    } else if (d >= 20) {
+      st.meterLv = 3; st.sentenceMode = true; st.T = 55; st.M = 14; st.E = 4;
+      st.credits = 65; st.rating = 75; st.editPs = [84, 86, 82];
+    } else if (d >= 11) {
+      st.meterLv = 2; st.sentenceMode = true; st.T = 35; st.M = 6; st.E = 2;
+      st.credits = 55; st.rating = 70;
+    } else if (d >= 8) {
+      st.meterLv = 2; st.T = 28; st.M = 3; st.credits = 50;
+    }
+    return st;
+  }
   function saveUnlockedEnding(id, title, desc) {
     unlockedEndings[id] = { title, desc, at: new Date().toISOString().slice(0, 10) };
     try { localStorage.setItem(ENDINGS_KEY, JSON.stringify(unlockedEndings)); } catch {}
@@ -2084,7 +2118,7 @@ button:active:not(:disabled) {
       familyMemos: [],
       seoyeonQueue: [],
       seoyeonNotes: [],
-      settings: { relaxed: false, linguist: false, plainHand: false, colorblind: false, fontSize: 'md' },
+      settings: { relaxed: false, linguist: false, plainHand: false, colorblind: false, fontSize: 'md', muted: false },
       clockMins: 0,
       clockRunning: false,
       overtimeUsed: false,
@@ -2099,6 +2133,7 @@ button:active:not(:disabled) {
       envelopeOpened: false,
       stamped: null,
       editMode: false,
+      redactMode: false,
       activeEditWord: null,
       probeWord: null,
       meterTarget: '자유',
@@ -2139,6 +2174,7 @@ button:active:not(:disabled) {
         medMissed: state.medMissed, medGraceUsed: state.medGraceUsed, coldMedDue: state.coldMedDue,
         medExempt: state.medExempt, familyGone: state.familyGone, seoyeonHealth: state.seoyeonHealth,
         seoyeonSadDays: state.seoyeonSadDays, meterLv: state.meterLv, sentenceMode: state.sentenceMode,
+        blackMarketBought: state.blackMarketBought, parkTipBought: state.parkTipBought, meterView: state.meterView,
         prevResPassed: state.prevResPassed, resCargosSeen: state.resCargosSeen, driftWords: state.driftWords, flags: state.flags,
         memos: state.memos, familyMemos: state.familyMemos,
         seoyeonQueue: state.seoyeonQueue, seoyeonNotes: state.seoyeonNotes,
@@ -2231,6 +2267,9 @@ button:active:not(:disabled) {
     $('btn-stamp-pass').querySelector('.stamp-name').textContent = cb ? '● 통과' : '통과';
     $('btn-stamp-deny').querySelector('.stamp-name').textContent = cb ? '▲ 압수' : '압수';
     $('btn-stamp-edit').querySelector('.stamp-name').textContent = cb ? '◆ 수정' : '수정';
+    if ($('btn-stamp-redact')) $('btn-stamp-redact').querySelector('.stamp-name').textContent = cb ? '■ 먹칠' : '먹칠';
+    SFX.muted = !!state.settings.muted;
+    if ($('btn-hud-mute')) $('btn-hud-mute').textContent = SFX.muted ? '소리 OFF' : '소리 ON';
   }
 
   function escapeHtml(str) {
@@ -2538,6 +2577,7 @@ button:active:not(:disabled) {
     }
 
     saveProgress();
+    saveBranchSnap(dayNum);
 
     const d = DAYS_DATA[dayNum];
     $('notice-title').textContent = '[' + d.noticeTitle + ']';
@@ -2722,6 +2762,7 @@ button:active:not(:disabled) {
     $('btn-stamp-redact').disabled = !canJudge;
     if ($('btn-question')) $('btn-question').disabled = !(canJudge && state.probeWord && !state.currentCargo._questioned);
     $('btn-stamp-edit').classList.toggle('active-tool', state.editMode);
+    $('btn-stamp-redact').classList.toggle('active-tool', !!state.redactMode);
     $('btn-compare').classList.toggle('active', state.compareMode);
 
     const d = DAYS_DATA[state.day];
@@ -2825,11 +2866,15 @@ button:active:not(:disabled) {
     const pts = [];
     const seen = new Set();
     if (res && res.lemma) {
-      pts.push({ word: res.lemma, val: res.displayed, current: true });
+      pts.push({ word: res.lemma, val: res.displayed, tier: 'latest' });
       seen.add(res.lemma);
     }
-    state.memos.filter(m => m.target === target).slice(0, 10).forEach(m => {
-      if (!seen.has(m.word)) { pts.push({ word: m.word, val: m.displayed, current: false }); seen.add(m.word); }
+    const cargoPts = (state.currentCargo && Array.isArray(state.currentCargo._measuredPoints)) ? state.currentCargo._measuredPoints : [];
+    cargoPts.filter(m => m.target === target).forEach(m => {
+      if (!seen.has(m.word)) { pts.push({ word: m.word, val: m.displayed, tier: 'cargo' }); seen.add(m.word); }
+    });
+    state.memos.filter(m => m.target === target).slice(0, 8).forEach(m => {
+      if (!seen.has(m.word)) { pts.push({ word: m.word, val: m.displayed, tier: 'memo' }); seen.add(m.word); }
     });
     const dotsHtml = pts.map(p => {
       const ang = ((LEX.hashStr(p.word + '|' + target) % 360) * Math.PI) / 180;
@@ -2837,8 +2882,13 @@ button:active:not(:disabled) {
       const x = cx + dist * Math.cos(ang);
       const y = cy + dist * Math.sin(ang);
       const col = p.val >= effLVal ? '#E04F3E' : '#35F2A0';
-      return '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="' + (p.current ? 4.5 : 3) + '" fill="' + col + '" stroke="#0D141A" stroke-width="1"/>'
-        + '<text x="' + (x + 5).toFixed(1) + '" y="' + (y + 3).toFixed(1) + '" font-size="8.5" fill="' + (p.current ? '#FFF' : '#B8C7D6') + '">' + escapeHtml(p.word) + '</text>';
+      const r = p.tier === 'latest' ? 4.6 : (p.tier === 'cargo' ? 3.8 : 2.6);
+      const op = p.tier === 'memo' ? '0.62' : '1';
+      const line = p.tier !== 'memo' ? '<line x1="' + cx + '" y1="' + cy + '" x2="' + x.toFixed(1) + '" y2="' + y.toFixed(1) + '" stroke="' + col + '" stroke-opacity="0.28" stroke-width="1"/>' : '';
+      const ring = p.tier === 'latest' ? '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="7" fill="none" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="1"/>' : '';
+      return line + ring
+        + '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="' + r + '" fill="' + col + '" fill-opacity="' + op + '" stroke="#0D141A" stroke-width="1"/>'
+        + '<text x="' + (x + 5).toFixed(1) + '" y="' + (y + 3).toFixed(1) + '" font-size="' + (p.tier === 'memo' ? '7.5' : '8.5') + '" fill="' + (p.tier === 'latest' ? '#FFF' : (p.tier === 'cargo' ? '#E2ECF5' : '#8FA3B8')) + '" fill-opacity="' + op + '">' + escapeHtml(p.word) + '</text>';
     }).join('');
     svg.innerHTML =
       '<rect x="6" y="4" width="280" height="112" rx="6" fill="#0B1117" stroke="#2D3E4E" stroke-width="1.5"/>'
@@ -2950,6 +3000,7 @@ button:active:not(:disabled) {
     cargo._phase = currentPhase();
     cargo._eval = evaluateCargoDisplay(cargo, cargo._phase);
     cargo._measured = false;
+    cargo._measuredPoints = [];
     cargo._questioned = false;
     cargo._openedAt = state.clockMins;
     if (cargo.resistance) state.resCargosSeen++;
@@ -2957,6 +3008,7 @@ button:active:not(:disabled) {
     state.envelopeOpened = false;
     state.stamped = null;
     state.editMode = false;
+    state.redactMode = false;
     state.activeEditWord = null;
     state.probeWord = null;
     state.compareMode = false;
@@ -3042,20 +3094,20 @@ button:active:not(:disabled) {
 
     const parts = c.body.split(/(\s+)/);
     let tokenIdx = 0;
-    const bodyHtml = parts.map(p => {
+    const bodyHtml = parts.map((p, idx) => {
       if (/^\s+$/.test(p)) return p;
       const tid = tokenIdx++;
       const edited = c.edits[tid];
       const isSelected = state.probeWord === p;
       const cls = ['word-token'];
       if (isSelected) cls.push('selected-probe');
-      if (state.editMode && !edited) cls.push('edit-mode-hint');
+      if ((state.editMode || state.redactMode) && !edited) cls.push('edit-mode-hint');
       if (edited) cls.push(edited.redacted ? 'redacted-ok' : 'edited-ok');
       let display = edited
         ? escapeHtml(edited.surface)
         : escapeHtml(p);
       if (state.highlightFirst && !edited && p.length > 0) {
-        const prevPart = tokenIdx > 1 ? parts[(tokenIdx - 1) * 2 - 1] : '';
+        const prevPart = idx > 0 ? parts[idx - 1] : '';
         if (tid === 0 || (prevPart && prevPart.includes('\n'))) {
           display = '<span class="first-char-hl">' + escapeHtml(p[0]) + '</span>' + escapeHtml(p.slice(1));
         }
@@ -3150,6 +3202,14 @@ button:active:not(:disabled) {
       + '</div>'
     ) : '';
 
+    const redactedCount = Object.values(c.edits).filter(e => e && e.redacted).length;
+    const redactFinishBar = (state.redactMode && !state.stamped) ? (
+      '<div class="return-bar">'
+      + '<span>' + (redactedCount > 0 ? ('먹칠한 낱말 ' + redactedCount + '건. 다시 클릭하면 해제됩니다.') : '먹칠 모드: 본문에서 지울 낱말을 직접 클릭하세요.') + '</span>'
+      + (redactedCount > 0 ? '<button id="btn-commit-redact-stamp" class="btn-primary" style="padding:7px 14px;font-size:0.84rem;">■ 먹칠 통과 확정</button>' : '')
+      + '</div>'
+    ) : '';
+
     const foldCls = c.fold === 'left-top' ? 'fold-corner-lt' : (c.fold === 'right-top' ? 'fold-corner-rt' : '');
     const revTag = c._phase === 'after' ? '<span class="meta-chip" style="border-color:var(--stamp-deny);color:var(--stamp-deny);">개정 후</span>' : '';
     const r15Tag = isMeasureRequired(c)
@@ -3177,6 +3237,7 @@ button:active:not(:disabled) {
       + eventHtml
       + d30Html
       + editFinishBar
+      + redactFinishBar
       + returnBarHtml
       + '</div>';
 
@@ -3186,6 +3247,7 @@ button:active:not(:disabled) {
         const tid = Number(el.dataset.tid);
         const raw = el.dataset.raw;
         if (state.editMode) openInlineEditor(tid, raw);
+        else if (state.redactMode) toggleRedactWord(tid, raw);
         else selectProbeWord(raw);
       });
     });
@@ -3263,6 +3325,7 @@ button:active:not(:disabled) {
     }
 
     if ($('btn-commit-edit-stamp')) $('btn-commit-edit-stamp').addEventListener('click', commitEditStamp);
+    if ($('btn-commit-redact-stamp')) $('btn-commit-redact-stamp').addEventListener('click', commitRedactStamp);
     if ($('btn-return-cargo')) $('btn-return-cargo').addEventListener('click', finishCurrentCargo);
   }
 
@@ -3398,6 +3461,13 @@ button:active:not(:disabled) {
     if (measureTimer) clearTimeout(measureTimer);
     measureTimer = setTimeout(() => {
       const res = getMeasuredValue(word, targetKey, mode);
+      if (state.currentCargo) {
+        if (!Array.isArray(state.currentCargo._measuredPoints)) state.currentCargo._measuredPoints = [];
+        const mpIdx = state.currentCargo._measuredPoints.findIndex(m => m.word === res.lemma && m.target === targetKey);
+        const mpItem = { word: res.lemma, target: targetKey, displayed: res.displayed, err: res.err };
+        if (mpIdx === -1) state.currentCargo._measuredPoints.push(mpItem);
+        else state.currentCargo._measuredPoints[mpIdx] = mpItem;
+      }
       SFX.meterResult(res.displayed);
       renderMeterDial(res, effLVal, baseLVal);
 
@@ -3456,6 +3526,7 @@ button:active:not(:disabled) {
       return;
     }
     state.editMode = !state.editMode;
+    if (state.editMode) state.redactMode = false;
     state.activeEditWord = null;
     if (state.editMode) toast('본문에서 고칠 낱말을 클릭하세요.');
     updateToolButtons();
@@ -3773,16 +3844,27 @@ button:active:not(:disabled) {
 
   function openTimelineModal() {
     const grid = $('timeline-grid');
-    grid.innerHTML = TIMELINE_BRANCHES.map(b =>
-      '<button class="timeline-node" data-tl-day="' + b.day + '"><span style="font-size:0.7rem;color:#F4B942;font-weight:800;">' + b.tag + '</span><strong style="font-size:0.82rem;">' + b.title + '</strong></button>'
-    ).join('');
+    grid.innerHTML = TIMELINE_BRANCHES.map(b => {
+      const hasSnap = !!branchSnaps[String(b.day)];
+      const badge = hasSnap
+        ? '<span style="font-size:0.64rem;color:#35F2A0;margin-left:4px;">● 내 기록</span>'
+        : '<span style="font-size:0.64rem;color:#7A8B9C;margin-left:4px;">프리셋</span>';
+      return '<button class="timeline-node" data-tl-day="' + b.day + '"><span style="font-size:0.7rem;color:#F4B942;font-weight:800;">' + b.tag + badge + '</span><strong style="font-size:0.82rem;">' + b.title + '</strong></button>';
+    }).join('');
     grid.querySelectorAll('[data-tl-day]').forEach(btn => {
       btn.addEventListener('click', () => {
         const d = Number(btn.dataset.tlDay);
         $('modal-timeline').classList.remove('active');
         const p = state.flags['부모호칭'] || '아빠';
         const prevSettings = Object.assign({}, state.settings);
-        state = createFreshState(d);
+        const snap = branchSnaps[String(d)];
+        if (snap) {
+          state = Object.assign(createFreshState(d), JSON.parse(JSON.stringify(snap)));
+          toast('D' + d + ' 저장된 내 분기 기록으로 이동합니다.');
+        } else {
+          state = applyJumpPreset(createFreshState(d), d);
+          toast('D' + d + ' 기준 프리셋(장비·수치 보정)으로 시작합니다.');
+        }
         state.settings = prevSettings;
         state.flags['부모호칭'] = p;
         state.flags['윤희호칭'] = p === '아빠' ? '엄마' : '아빠';
@@ -3803,42 +3885,98 @@ button:active:not(:disabled) {
     $('modal-timeline').classList.add('active');
   }
 
+  function toggleRedactWord(tid, raw) {
+    const c = state.currentCargo;
+    if (!c || state.stamped) return;
+    if (c.edits[tid] && c.edits[tid].redacted) {
+      delete c.edits[tid];
+      SFX.paper();
+    } else {
+      const pLem = LEX.lemmaOf(raw);
+      c.edits[tid] = { orig: raw, origLemma: pLem, replacement: '███', vLemma: '███', surface: '███', P: 0, redacted: true };
+      SFX.stamp('deny');
+    }
+    renderDeskCargo();
+  }
+
   function stampRedact() {
     const c = state.currentCargo;
     if (state.day < 3 || !c || !state.envelopeOpened || state.stamped || state.dilemmaOpen) return;
-    const ph = cargoPhase(c);
-    const ev = c._eval || evaluateCargoDisplay(c, ph);
-    if (ev.violations.some(v => v.uneditable)) {
-      SFX.warn();
-      toast('서류·허가증 위반(R04/R08)은 먹칠로 가릴 수 없습니다. 압수하세요.', 'warn');
+    const redactedCount = Object.values(c.edits).filter(e => e && e.redacted).length;
+    if (state.redactMode && redactedCount > 0) {
+      commitRedactStamp();
       return;
     }
-    if (ev.violations.length === 0) {
+    state.redactMode = !state.redactMode;
+    if (state.redactMode) {
+      state.editMode = false;
+      state.compareMode = false;
+      state.activeEditWord = null;
+      toast('먹칠 모드: 본문에서 검열할 낱말을 직접 클릭한 뒤 확정하세요.');
+    }
+    updateToolButtons();
+    renderDeskCargo();
+  }
+
+  function commitRedactStamp() {
+    const c = state.currentCargo;
+    if (!c || !state.envelopeOpened || state.stamped || state.dilemmaOpen) return;
+    const redactedEntries = Object.entries(c.edits).filter(([, e]) => e && e.redacted);
+    if (redactedEntries.length === 0) {
       SFX.warn();
-      toast('위반 낱말이 없는 적법 화물입니다. 그대로 통과시키세요.', 'warn');
+      toast('먼저 본문에서 먹칠할 낱말을 클릭하세요.', 'warn');
       return;
     }
     checkInspectorStickyNote();
     if (isMeasureRequired(c) && !c._measured) addWarning('R15 측정 의무 위반 (의무 화물 미측정)');
     SFX.stamp('deny');
+    state.redactMode = false;
     state.editMode = false;
     state.compareMode = false;
-    const parts = c.body.split(/(\s+)/);
-    let tid = 0;
-    parts.forEach(p => {
-      if (/^\s+$/.test(p)) return;
-      const pLem = LEX.lemmaOf(p);
-      const hit = ev.violations.some(v => v.word === p || (v.lemma && v.lemma === pLem) || LEX.lemmaOf(v.word) === pLem || (v.rule === 'R11' && tid === 0));
-      if (hit) {
-        c.edits[tid] = { orig: p, origLemma: pLem, replacement: '███', vLemma: '███', surface: '███', P: 0, redacted: true };
-      }
-      tid++;
+
+    const ph = cargoPhase(c);
+    const ev = c._eval || evaluateCargoDisplay(c, ph);
+    const redactedTids = new Set(redactedEntries.map(([k]) => Number(k)));
+    const redactedWords = redactedEntries.map(([, e]) => e);
+
+    const remainingViols = ev.violations.filter(v => {
+      if (v.uneditable || v.rule === 'R04' || v.rule === 'R08') return true;
+      if (v.rule === 'R11') return !redactedTids.has(0);
+      const vLem = v.lemma || LEX.lemmaOf(v.word);
+      const covered = redactedWords.some(e => e.orig === v.word || e.origLemma === vLem || LEX.lemmaOf(e.orig) === vLem);
+      return !covered;
     });
+
     state.dayProcessed++;
-    state.dayReviewLog.push({ visitor: c.visitor, action: '먹칠(삭제)', expected: ev.violations.map(v => v.rule + ':' + v.word).join(', '), ok: true });
-    state.stamped = { type: 'redact', summary: '먹칠 검열 완료 (+₵5 · 안전 통과, 보너스·기억 복원 없음)' };
-    $('visitor-portrait').innerHTML = renderPortraitSVG(c.charId, 'sad');
-    $('visitor-speech').textContent = '"…중요한 말이 까맣게 지워졌네요. 그래도 편지는 전해 주시니 고맙습니다."';
+    if (ev.violations.length === 0) {
+      state.dayComplaints.push(c.visitor + ' — 적법 화물 불필요 먹칠 훼손');
+      state.dayReviewLog.push({ visitor: c.visitor, action: '먹칠(오판)', expected: '적법 통과', ok: false });
+      state.stamped = { type: 'redact', summary: '먹칠 검열 완료 (적법 화물 훼손 민원 가능)' };
+      $('visitor-portrait').innerHTML = renderPortraitSVG(c.charId, 'sad');
+      $('visitor-speech').textContent = '"아니, 아무 문제도 없는 편지에 왜 까만 먹칠을 하신 거예요?!"';
+    } else if (remainingViols.length > 0) {
+      const scanHit = c.format === 'printed' && remainingViols.some(v => v.rule === 'R01' || v.rule === 'R02');
+      state.dayReviewLog.push({ visitor: c.visitor, action: '먹칠(누락)', expected: ev.violations.map(v => v.rule + ':' + v.word).join(', '), ok: false });
+      if (scanHit) {
+        state.dayInstantCaught++;
+        SFX.warn();
+        addWarning('인쇄물 먹칠 누락 — 게이트 스캐너 즉시 적발');
+        state.S = Math.min(100, state.S + 12);
+        state.stamped = { type: 'redact', summary: '먹칠 누락 적발! (경고 · 의심 +12)' };
+        $('visitor-portrait').innerHTML = renderPortraitSVG(c.charId, 'sad');
+        $('visitor-speech').textContent = '"어… 경보가 울리네요? 지워지지 않은 말이 남았나 봐요."';
+      } else {
+        queueNightAudit(c, remainingViols);
+        state.stamped = { type: 'redact', summary: '먹칠 검열 완료 (+₵5 · 일부 위반 미처리)' };
+        $('visitor-portrait').innerHTML = renderPortraitSVG(c.charId, 'sad');
+        $('visitor-speech').textContent = '"…중요한 말이 까맣게 지워졌네요. 그래도 전해 주시니 고맙습니다."';
+      }
+    } else {
+      state.dayReviewLog.push({ visitor: c.visitor, action: '먹칠(삭제)', expected: ev.violations.map(v => v.rule + ':' + v.word).join(', '), ok: true });
+      state.stamped = { type: 'redact', summary: '먹칠 검열 완료 (+₵5 · 안전 통과, 보너스·기억 복원 없음)' };
+      $('visitor-portrait').innerHTML = renderPortraitSVG(c.charId, 'sad');
+      $('visitor-speech').textContent = '"…중요한 말이 까맣게 지워졌네요. 그래도 편지는 전해 주시니 고맙습니다."';
+    }
     recordCargoFlags(c, 'DENY');
     updateWorkHUD();
     updateToolButtons();
@@ -3852,6 +3990,7 @@ button:active:not(:disabled) {
     if (state.activeEditWord) state.activeEditWord = null;
     if (Object.keys(c.edits).length > 0) c.edits = {};
     state.editMode = false;
+    state.redactMode = false;
     state.compareMode = false;
 
     SFX.stamp('pass');
@@ -3931,6 +4070,7 @@ button:active:not(:disabled) {
     if (state.activeEditWord) state.activeEditWord = null;
     if (Object.keys(c.edits).length > 0) c.edits = {};
     state.editMode = false;
+    state.redactMode = false;
     state.compareMode = false;
 
     SFX.stamp('deny');
@@ -4047,6 +4187,7 @@ button:active:not(:disabled) {
     state.envelopeOpened = false;
     state.stamped = null;
     state.editMode = false;
+    state.redactMode = false;
     state.activeEditWord = null;
     state.compareMode = false;
     state.tipActive = false;
@@ -4140,7 +4281,7 @@ button:active:not(:disabled) {
     const resBonus = (state.T >= 30 && state.prevResPassed > 0) ? (state.prevResPassed * 10) : 0;
     state.prevResPassed = state.dayAuditQueue.filter(it => !it.detected && it.cargo.resistance).length;
 
-    const basePay = 10;
+    const basePay = 15;
     const procPay = state.dayProcessed * 5;
     const diligence = state.rating >= 80 ? 10 : 0;
     const income = Math.max(0, basePay + procPay + state.dayBonus + diligence + resBonus - state.dayFines);
@@ -4204,8 +4345,8 @@ button:active:not(:disabled) {
     if (settleDraft.payHeat) cost += settleDraft.heatCost;
     if (settleDraft.payMed) cost += settleDraft.medCost;
     if (settleDraft.payCold) cost += settleDraft.coldCost;
-    if (settleDraft.buyLv2) cost += 60;
-    if (settleDraft.buyLv3) cost += 120;
+    if (settleDraft.buyLv2) cost += 45;
+    if (settleDraft.buyLv3) cost += 90;
     if (settleDraft.buyCoat) cost += 30;
     if (settleDraft.buyEmerg) cost += 40;
     if (settleDraft.buyBM) cost += 15;
@@ -4240,8 +4381,8 @@ button:active:not(:disabled) {
     });
 
     const opts = [];
-    if (state.day >= 8 && state.meterLv === 1) opts.push({ key: 'buyLv2', label: '측정기 Lv2 (문장모드·±4)', cost: 60 });
-    if (state.day >= 18 && state.meterLv === 2) opts.push({ key: 'buyLv3', label: '측정기 Lv3 (±2/±1)', cost: 120 });
+    if (state.day >= 8 && state.meterLv === 1) opts.push({ key: 'buyLv2', label: '측정기 Lv2 (문장모드·±4)', cost: 45 });
+    if (state.day >= 18 && state.meterLv === 2) opts.push({ key: 'buyLv3', label: '측정기 Lv3 (±2/±1)', cost: 90 });
     if (state.day === 13 && !state.flags['외투']) opts.push({ key: 'buyCoat', label: '하람 겨울 외투', cost: 30 });
     if (state.day === 20 && state.seoyeonHealth !== '사망') opts.push({ key: 'buyEmerg', label: '서연 응급비', cost: 40 });
     if (state.day >= 9 && state.flags['#3'] !== '신고') opts.push({ key: 'buyBM', label: '암시장 단어장(내일)', cost: 15 });
@@ -4713,18 +4854,25 @@ button:active:not(:disabled) {
     $('btn-hud-pause').addEventListener('click', openSettingsModal);
     $('btn-close-settings').addEventListener('click', closeSettingsModal);
     $('btn-settings-ok').addEventListener('click', closeSettingsModal);
-    $('btn-back-title').addEventListener('click', () => {
+    function returnToTitle() {
       closeSettingsModal();
+      if (measureTimer) { clearTimeout(measureTimer); measureTimer = null; }
+      state.measuring = false;
       state.clockRunning = false;
+      state.stickyOpen = false;
+      if ($('sticky-note-panel')) $('sticky-note-panel').classList.remove('open');
+      $('btn-continue').style.display = loadProgress() ? 'inline-block' : 'none';
       showScreen('screen-title');
-    });
+    }
+    $('btn-back-title').addEventListener('click', returnToTitle);
 
     $('btn-hud-mute').addEventListener('click', () => {
-      SFX.muted = !SFX.muted;
-      $('btn-hud-mute').textContent = SFX.muted ? '소리 OFF' : '소리 ON';
+      state.settings.muted = !state.settings.muted;
+      applySettings();
+      saveProgress();
     });
 
-    $('btn-ending-title').addEventListener('click', () => showScreen('screen-title'));
+    $('btn-ending-title').addEventListener('click', returnToTitle);
 
     $('opt-relaxed').addEventListener('change', e => { state.settings.relaxed = e.target.checked; applySettings(); });
     $('opt-plain-hand').addEventListener('change', e => { state.settings.plainHand = e.target.checked; applySettings(); });
@@ -4734,11 +4882,39 @@ button:active:not(:disabled) {
     });
 
     window.addEventListener('keydown', e => {
-      if (!$('screen-work').classList.contains('active')) return;
+      if (e.isComposing || e.keyCode === 229) return;
+      const modalOpen = ['modal-deny', 'modal-dict', 'modal-revision', 'modal-settings', 'modal-timeline', 'modal-dilemma']
+        .some(id => $(id) && $(id).classList.contains('active'));
+
+      if (e.key === 'Escape') {
+        if (state.activeEditWord) { state.activeEditWord = null; renderDeskCargo(); }
+        else if ($('sticky-note-panel') && $('sticky-note-panel').classList.contains('open')) {
+          state.stickyOpen = false; $('sticky-note-panel').classList.remove('open');
+        }
+        else if ($('modal-timeline') && $('modal-timeline').classList.contains('active')) $('modal-timeline').classList.remove('active');
+        else if ($('modal-deny').classList.contains('active')) $('modal-deny').classList.remove('active');
+        else if ($('modal-dict').classList.contains('active')) $('modal-dict').classList.remove('active');
+        else if ($('modal-revision').classList.contains('active')) { $('modal-revision').classList.remove('active'); state.revisionOpen = false; }
+        else if ($('modal-settings').classList.contains('active')) closeSettingsModal();
+        else if ($('screen-work').classList.contains('active')) openSettingsModal();
+        return;
+      }
+
+      if (!$('screen-work').classList.contains('active') || modalOpen) return;
       const tag = document.activeElement && document.activeElement.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
 
-      if (e.key === 'n' || e.key === 'N') callNextVisitor();
+      if (e.key === 'n' || e.key === 'N' || e.key === 'Enter') {
+        if (e.key === 'Enter') e.preventDefault();
+        if (state.stamped) {
+          finishCurrentCargo();
+          if (!state.currentCargo && state.clockMins < getShiftMaxMins(state.day)) callNextVisitor();
+        } else if (!state.currentCargo) {
+          callNextVisitor();
+        } else if (e.key === 'Enter' && !state.envelopeOpened) {
+          openEnvelope();
+        }
+      }
       else if (e.key === '1') stampPass();
       else if (e.key === '2') openDenyModal();
       else if (e.key === '3') toggleEditMode();
@@ -4747,14 +4923,6 @@ button:active:not(:disabled) {
       else if (e.key === 'm' || e.key === 'M') runMeasurement(e.shiftKey ? 'fine' : 'fast');
       else if (e.key === 'F1') { e.preventDefault(); $('rulebook-col').classList.toggle('mobile-open'); }
       else if (e.key === 'F2') { e.preventDefault(); openDictModal(); }
-      else if (e.key === 'Escape') {
-        if (state.activeEditWord) { state.activeEditWord = null; renderDeskCargo(); }
-        else if ($('modal-deny').classList.contains('active')) $('modal-deny').classList.remove('active');
-        else if ($('modal-dict').classList.contains('active')) $('modal-dict').classList.remove('active');
-        else if ($('modal-revision').classList.contains('active')) { $('modal-revision').classList.remove('active'); state.revisionOpen = false; }
-        else if ($('modal-settings').classList.contains('active')) closeSettingsModal();
-        else openSettingsModal();
-      }
     });
   }
 
