@@ -1956,7 +1956,9 @@ button:active:not(:disabled) {
       btn.title = DAYS_DATA[d] ? DAYS_DATA[d].title || ('D' + d) : ('D' + d);
       btn.addEventListener('click', () => {
         const parentTitle = state.flags['부모호칭'] || '아빠';
+        const prevSettings = Object.assign({}, state.settings);
         state = createFreshState(d);
+        state.settings = prevSettings;
         state.flags['부모호칭'] = parentTitle;
         state.flags['윤희호칭'] = parentTitle === '아빠' ? '엄마' : '아빠';
         applySettings();
@@ -2114,6 +2116,8 @@ button:active:not(:disabled) {
       dayRestorations: [],
       daySeenWords: [],
       dayReviewLog: [],
+      dayInstantCaught: 0,
+      dayNullPsychHits: 0,
       dayAdviceCount: 0,
       dayPendingSettleFlags: [],
       rbTab: 'terms'
@@ -2162,6 +2166,13 @@ button:active:not(:disabled) {
     $('toast-container').appendChild(el);
     setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 0.25s'; }, 2400);
     setTimeout(() => el.remove(), 2700);
+  }
+
+  function getShiftMaxMins(dayNum) {
+    const d = dayNum || state.day || 1;
+    if (d <= 10) return 420; // 15:00
+    if (d <= 20) return 510; // 16:30
+    return 600;              // 18:00
   }
 
   function formatClock(mins) {
@@ -2450,6 +2461,8 @@ button:active:not(:disabled) {
     state.dayRestorations = [];
     state.daySeenWords = [];
     state.dayReviewLog = [];
+    state.dayInstantCaught = 0;
+    state.dayNullPsychHits = 0;
     state.dayAdviceCount = 0;
     state.dayPendingSettleFlags = [];
     state.d30Editing = false;
@@ -2472,6 +2485,10 @@ button:active:not(:disabled) {
       else if (dayNum === 6 && ['PASS','SLIPPED','EDIT'].includes(state.flags['D5-3'])) hl = '제3구역 빗속 골목서 무허가 노래 공연… 주민 수십 명 모여 합창';
       else if (dayNum === 16 && state.flags['D15.미끼'] === 'DENY') hl = '언어관리청, 제7창구 심사관의 위장 화물 간파 성과 높이 평가';
       else if (dayNum === 20 && ['PASS','SLIPPED','EDIT'].includes(state.flags['D19.국장'])) hl = '중앙구 우정국, 오래 끊겼던 가족 서신 1건 정상 배달 확인';
+      else if (dayNum === 22 && state.flags['D21.박주임'] === '증언') hl = '제6창구 전 심사관 기소 확정… 동료 심사관 진술 결정적';
+      else if (dayNum === 22 && (state.flags['D21.박주임'] === '침묵' || state.flags['D21.박주임'] === '침묵+송금')) hl = '제6창구 수사 난항… 언어관리청, 인근 창구 감시 확대';
+      else if (dayNum === 26 && state.flags['#10'] === '수락') hl = '속보: 지하 조직 「사전」 핵심 연락책 체포… 공조자 의료 특혜 적용';
+      else if (dayNum === 26 && state.flags['#10'] === '거절') hl = 'NULL, 경계 세관 제7창구 이상 로그 보관 조치 통보';
       else if (state.S >= 50) hl = '언어관리청 "경계 세관 내부 감찰 대폭 강화… 비인가 행위 엄단"';
       else if (driftKeys.length > 0 && dayNum >= 5) hl = 'NULL 경보: 신종 우회 어휘 「' + driftKeys[driftKeys.length - 1] + '」 사용량 급증 감시';
       else if (dayNum > 1) hl = '표준 어휘 준수율 94.2% 달성… NULL "언어 효율화 순항 중"';
@@ -2528,7 +2545,7 @@ button:active:not(:disabled) {
     $('notice-body').innerHTML =
       (d.noticeItems || []).map(it => '<div class="notice-section">' + escapeHtml(it) + '</div>').join('') +
       (d.noticeExamples ? '<div class="notice-example">' + escapeHtml(d.noticeExamples) + '</div>' : '') +
-      '<div style="font-size:0.84rem;color:#534D42;margin-top:8px;">오늘 대기열: ' + d.cargos.length + '건 · 근무 시간: 08:00 ~ 18:00</div>';
+      '<div style="font-size:0.84rem;color:#534D42;margin-top:8px;">오늘 대기열: ' + d.cargos.length + '건 · 근무 시간: 08:00 ~ ' + formatClock(getShiftMaxMins(dayNum)) + '</div>';
 
     if (arrivedNotes.length > 0) {
       $('notice-seoyeon').style.display = 'block';
@@ -2558,6 +2575,12 @@ button:active:not(:disabled) {
     $('meter-controls').style.display = meterUnlocked ? 'flex' : 'none';
     $('btn-stamp-edit').style.display = state.day >= 3 ? 'flex' : 'none';
     $('btn-stamp-redact').style.display = state.day >= 3 ? 'flex' : 'none';
+    if ($('btn-hud-sticky')) $('btn-hud-sticky').style.display = state.day >= 2 ? 'inline-block' : 'none';
+    if ($('btn-view-radar')) $('btn-view-radar').style.display = state.day >= 3 ? 'inline-block' : 'none';
+    if (state.day <= 2) {
+      $('tutorial-tip-text').textContent = (state.day === 1 ? '규칙 안내: 책 제목·인용문·무해한 문장 속 단어라도 통제 어휘가 들어가면 위반입니다.' : '규칙 안내: 한 화물에 의심 단어가 여럿이면 모두 측정해 확인해야 합니다.');
+      $('tutorial-tip').style.display = 'flex';
+    }
     $('btn-compare').style.display = state.day >= 4 ? 'inline-block' : 'none';
     $('btn-highlight-first').style.display = state.day >= 22 ? 'inline-block' : 'none';
     $('btn-sentence-mode').style.display = state.meterLv >= 2 ? 'inline-block' : 'none';
@@ -2595,7 +2618,8 @@ button:active:not(:disabled) {
 
   function advanceClock(deltaMins) {
     if (state.day === 1 && state.queueIndex < 2) return;
-    const cap = state.currentCargo ? 630 : 600;
+    const maxM = getShiftMaxMins(state.day);
+    const cap = state.currentCargo ? (maxM + 30) : maxM;
     state.clockMins = Math.min(cap, state.clockMins + deltaMins);
 
     const d = DAYS_DATA[state.day];
@@ -2621,20 +2645,25 @@ button:active:not(:disabled) {
         ? '기억 화물 앞에서 지체하는 패턴이 기록되었습니다. 감정은 오판의 원인입니다.'
         : '평균 심사 시간을 초과했습니다. 규정은 망설임 없이 적용되어야 합니다.';
       $('null-slit').innerHTML = '<span class="null-tag">NULL</span>' + msg;
+      if (state.dayNullPsychHits < 3) {
+        state.dayNullPsychHits++;
+        state.S = Math.min(100, state.S + 1);
+        toast('NULL 지체 관찰 기록 (의심 소폭 상승)', 'warn');
+      }
     }
 
-    if (state.clockMins >= 600) {
+    if (state.clockMins >= maxM) {
       if (state.currentCargo && !state.overtimeUsed) {
-        if (state.clockMins >= 630) {
-          state.clockMins = 630;
+        if (state.clockMins >= maxM + 30) {
+          state.clockMins = maxM + 30;
           state.clockRunning = false;
-          toast('18:30 연장 종료. 퇴근 정산으로 이동합니다.', 'warn');
+          toast(formatClock(maxM + 30) + ' 연장 종료. 퇴근 정산으로 이동합니다.', 'warn');
           setTimeout(() => openSettlement(), 800);
         }
       } else {
-        state.clockMins = 600;
+        state.clockMins = maxM;
         state.clockRunning = false;
-        toast('18:00 근무 종료. 퇴근 정산으로 이동합니다.', 'warn');
+        toast(formatClock(maxM) + ' 근무 종료. 퇴근 정산으로 이동합니다.', 'warn');
         setTimeout(() => openSettlement(), 800);
       }
     }
@@ -2661,7 +2690,9 @@ button:active:not(:disabled) {
 
   function updateClockUI() {
     $('hud-clock').textContent = formatClock(state.clockMins);
-    const pct = Math.min(100, (state.clockMins / 600) * 100);
+    const maxM = getShiftMaxMins(state.day);
+    const pct = Math.min(100, (state.clockMins / maxM) * 100);
+    if ($('hud-clock-end')) $('hud-clock-end').textContent = formatClock(maxM);
     const fill = $('hud-clock-fill');
     fill.style.width = pct + '%';
     fill.classList.toggle('over', pct >= 100);
@@ -2695,7 +2726,7 @@ button:active:not(:disabled) {
 
     const d = DAYS_DATA[state.day];
     const hasMore = state.queueIndex < d.cargos.length;
-    const canCall = !state.currentCargo && hasMore && state.clockMins < 600;
+    const canCall = !state.currentCargo && hasMore && state.clockMins < getShiftMaxMins(state.day);
     $('btn-bell').disabled = !canCall;
     $('btn-bell').classList.toggle('pulse', canCall);
     $('btn-end-shift-early').style.display = (!state.currentCargo && !hasMore) ? 'inline-block' : 'none';
@@ -2816,7 +2847,8 @@ button:active:not(:disabled) {
       + '<circle cx="' + cx + '" cy="' + cy + '" r="6" fill="#E04F3E"/>'
       + '<text x="' + cx + '" y="' + (cy - 9) + '" font-size="9" font-weight="700" fill="#FCA5A5" text-anchor="middle">' + escapeHtml(target) + '</text>'
       + dotsHtml
-      + '<text x="14" y="16" font-size="8.5" fill="#8FA3B8">2D 의미 별자리 (적색 원 안 = L' + effLVal + ' 위반)</text>';
+      + '<text x="14" y="16" font-size="8.5" fill="#8FA3B8">별자리 (적색 안=위반 / 바깥=안전 L' + effLVal + ')</text>'
+      + (res ? '<text x="14" y="110" font-size="8.5" fill="' + (res.displayed >= effLVal ? '#FCA5A5' : '#86EFAC') + '">현재 ' + escapeHtml(res.lemma) + ': 경계선 대비 ' + (res.displayed >= effLVal ? '+' : '') + (res.displayed - effLVal) + '</text>' : '');
   }
 
   function renderRulebook() {
@@ -3098,8 +3130,8 @@ button:active:not(:disabled) {
         + '<div style="display:flex;gap:6px;align-items:center;"><span style="font-size:0.8rem;">NULL 질문 답(선택):</span><input id="d30-answer-input" class="inline-edit-input" type="text" placeholder="왜 그 단어가 필요합니까"></div>'
         + '<div class="dilemma-btns">'
         + '<button id="btn-d30-a" class="btn-danger">A 봉인 (압수)</button>'
-        + (!lockedB ? '<button id="btn-d30-b" class="btn-primary">B 개방 (통과)</button>' : '')
-        + (canLeave ? '<button id="btn-d30-c" class="btn-secondary">C 떠남 (탈출증)</button>' : '')
+        + (!lockedB ? '<button id="btn-d30-b" class="btn-primary">B 개방 (통과)</button>' : '<button class="btn-secondary" disabled title="D25 NULL 거래 수락으로 잠김">B 개방 (잠김 · 거래 수락)</button>')
+        + (canLeave ? '<button id="btn-d30-c" class="btn-secondary">C 떠남 (탈출증)</button>' : '<button class="btn-secondary" disabled title="D26에서 탈출증을 얻지 못함">C 떠남 (잠김 · 탈출증 없음)</button>')
         + '<button id="btn-d30-d" class="btn-secondary">D 고쳐 쓰기</button>'
         + '</div></div>';
     }
@@ -3184,8 +3216,7 @@ button:active:not(:disabled) {
       $('btn-inline-preview').addEventListener('click', () => {
         const val = (inp.value || '').trim();
         if (!val) { toast('먼저 대체어 후보를 입력하세요.', 'warn'); return; }
-        $('meter-direct-input').value = val;
-        runMeasurement('fast');
+        runMeasurement('fast', val);
         const msgEl = $('inline-edit-msg');
         if (msgEl) msgEl.textContent = '"' + val + '" 후보를 측정기에 보냈습니다. (벌칙 없음)';
       });
@@ -3289,6 +3320,7 @@ button:active:not(:disabled) {
 
   function selectProbeWord(raw) {
     state.probeWord = raw;
+    if ($('meter-direct-input')) $('meter-direct-input').value = '';
     $('meter-probe').textContent = LEX.lemmaOf(raw);
     updateToolButtons();
     renderDeskCargo();
@@ -3326,7 +3358,7 @@ button:active:not(:disabled) {
     return { displayed, err, trueVal, lemma, senseNote, min: Math.max(0, displayed - err), max: Math.min(100, displayed + err) };
   }
 
-  function runMeasurement(mode) {
+  function runMeasurement(mode, overrideWord) {
     if (state.day < 2 || state.measuring) return;
     if (state.meterBrokenUntil > state.clockMins) {
       SFX.warn();
@@ -3334,7 +3366,7 @@ button:active:not(:disabled) {
       return;
     }
     const direct = $('meter-direct-input').value.trim();
-    const word = direct || state.probeWord;
+    const word = (overrideWord && String(overrideWord).trim()) || direct || state.probeWord;
     if (!word) {
       toast('본문에서 낱말을 클릭하거나 직접 입력칸에 단어를 치세요.', 'warn');
       return;
@@ -3380,17 +3412,21 @@ button:active:not(:disabled) {
       $('meter-result').textContent = helper + (res.senseNote || '');
       $('meter-result').className = 'verdict-msg ' + cls;
 
-      const prevIdx = state.memos.findIndex(m => m.day === state.day && m.word === res.lemma && m.target === targetKey);
-      if (prevIdx === -1) {
-        state.memos.unshift({ day: state.day, word: res.lemma, target: targetKey, displayed: res.displayed, err: res.err });
-        if (state.rbTab === 'memo') renderRulebook();
-      } else if (res.err <= state.memos[prevIdx].err) {
-        state.memos[prevIdx] = { day: state.day, word: res.lemma, target: targetKey, displayed: res.displayed, err: res.err };
-        if (state.rbTab === 'memo') renderRulebook();
+      try {
+        if (!Array.isArray(state.memos)) state.memos = [];
+        const prevIdx = state.memos.findIndex(m => m.day === state.day && m.word === res.lemma && m.target === targetKey);
+        if (prevIdx === -1) {
+          state.memos.unshift({ day: state.day, word: res.lemma, target: targetKey, displayed: res.displayed, err: res.err });
+          if (state.rbTab === 'memo') renderRulebook();
+        } else if (res.err <= state.memos[prevIdx].err) {
+          state.memos[prevIdx] = { day: state.day, word: res.lemma, target: targetKey, displayed: res.displayed, err: res.err };
+          if (state.rbTab === 'memo') renderRulebook();
+        }
+      } finally {
+        state.measuring = false;
+        $('btn-measure-fast').disabled = false;
+        $('btn-measure-fine').disabled = false;
       }
-      state.measuring = false;
-      $('btn-measure-fast').disabled = false;
-      $('btn-measure-fine').disabled = false;
     }, 1500);
   }
 
@@ -3518,6 +3554,8 @@ button:active:not(:disabled) {
       state.activeEditWord = null;
       state.editMode = false;
       state.dayProcessed++;
+      state.dayInstantCaught++;
+      state.dayReviewLog.push({ visitor: c.visitor, action: '수정 실패(자동압수)', expected: ev.violations.map(v => v.rule + ':' + v.word).join(', ') || '적법', ok: false });
       state.stamped = { type: 'deny', summary: '⚠ 부정 수정 즉시 적발 (' + (typeof illegal === 'string' ? illegal : '초성 금지') + ') — 자동 압수 (경고)' };
       const reactText = deterministicPick(c.id + '|edit_bad', (c.react && c.react.EDIT_BAD) || ['그 말도 걸리는군요… 할 수 없죠.']);
       $('visitor-portrait').innerHTML = renderPortraitSVG(c.charId, 'sad');
@@ -3629,8 +3667,8 @@ button:active:not(:disabled) {
     }
     if (isMeasureRequired(c) && !c._measured) addWarning('R15 측정 의무 위반 (의무 화물 미측정)');
     if (PRESSURE_DAYS.has(state.day) && c.express && (state.clockMins - (c._openedAt || 0)) <= 35) {
-      state.dayBonus += 3;
-      toast('급행 화물 신속 처리 보너스 +₵3');
+      state.dayBonus += 5;
+      toast('급행 화물 신속 처리 보너스 +₵5');
     }
 
     SFX.stamp('edit');
@@ -3657,7 +3695,8 @@ button:active:not(:disabled) {
         state.driftWords[ed.vLemma] = dRec;
         if (dRec.count === 3) {
           $('null-slit').innerHTML = '<span class="null-tag">NULL</span>비정상 확산 감지: 「' + escapeHtml(ed.vLemma) + '」 3회 누적 — 감시 보정(+8)이 적용됩니다.';
-          toast('⚠ NULL 경고: 「' + ed.vLemma + '」 남용 감지! 다음부터 경계 압박(+8) 적용', 'warn');
+          addWarning('언어 전염 남용 감지 («' + ed.vLemma + '» 3회 누적)');
+          toast('⚠ NULL 경고: 「' + ed.vLemma + '」 남용 적발! 경고 + 경계 압박(+8) 적용', 'err');
         }
       });
       if (c.memory) {
@@ -3742,7 +3781,9 @@ button:active:not(:disabled) {
         const d = Number(btn.dataset.tlDay);
         $('modal-timeline').classList.remove('active');
         const p = state.flags['부모호칭'] || '아빠';
+        const prevSettings = Object.assign({}, state.settings);
         state = createFreshState(d);
+        state.settings = prevSettings;
         state.flags['부모호칭'] = p;
         state.flags['윤희호칭'] = p === '아빠' ? '엄마' : '아빠';
         applySettings();
@@ -3824,8 +3865,8 @@ button:active:not(:disabled) {
       toast('감찰관 고윤: "1등급 의심 화물을 측정도 없이 넘겼군요." (주의)', 'warn');
     }
     if (PRESSURE_DAYS.has(state.day) && c.express && (state.clockMins - (c._openedAt || 0)) <= 35) {
-      state.dayBonus += 3;
-      toast('급행 화물 신속 처리 보너스 +₵3');
+      state.dayBonus += 5;
+      toast('급행 화물 신속 처리 보너스 +₵5');
     }
     state.dayProcessed++;
     if (ev.violations.length === 0) {
@@ -3841,6 +3882,8 @@ button:active:not(:disabled) {
         SFX.warn();
         addWarning('게이트 스캐너 적발');
         state.S = Math.min(100, state.S + 12);
+        state.dayInstantCaught++;
+        state.dayReviewLog.push({ visitor: c.visitor, action: '통과(스캐너 적발)', expected: ev.violations.map(v => v.rule + ':' + v.word).join(', '), ok: false });
         state.stamped = { type: 'pass', summary: '⚠ 게이트 스캐너 경보! (경고)' };
         const scanLine = deterministicPick(c.id + '|scan', (c.react && c.react.SCAN) || ['어, 경보가 울리네요?']);
         $('visitor-portrait').innerHTML = renderPortraitSVG(c.charId, 'sad');
@@ -3897,8 +3940,8 @@ button:active:not(:disabled) {
 
     if (isMeasureRequired(c) && !c._measured) addWarning('R15 측정 의무 위반 (의무 화물 미측정)');
     if (PRESSURE_DAYS.has(state.day) && c.express && (state.clockMins - (c._openedAt || 0)) <= 35) {
-      state.dayBonus += 3;
-      toast('급행 화물 신속 처리 보너스 +₵3');
+      state.dayBonus += 5;
+      toast('급행 화물 신속 처리 보너스 +₵5');
     }
     state.dayProcessed++;
     if (ev.violations.length === 0) {
@@ -3978,7 +4021,8 @@ button:active:not(:disabled) {
   }
 
   function queueNightAudit(cargo, violations) {
-    const p = ENGINE.auditP(cargo, state.day, violations, cargo._eval);
+    let p = ENGINE.auditP(cargo, state.day, violations, cargo._eval);
+    if (state.dayAuditQueue.length >= 1 || state.rating < 50) p = Math.min(0.95, p + 0.10);
     const detected = p >= 1 ? true : deterministicRoll(cargo.id + '|audit', Math.round(p * 100));
     const maxGrade = Math.min(...violations.map(v => v.grade || 3));
     state.dayAuditQueue.push({ cargo, grade: maxGrade, p, detected });
@@ -4021,7 +4065,7 @@ button:active:not(:disabled) {
       $('visitor-portrait').innerHTML = renderPortraitSVG('director', 'happy');
       $('visitor-name').textContent = '국장 문태오';
       $('visitor-speech').textContent = '"오늘 화물은 모두 끝났네. 정산하고 퇴근하게."';
-    } else if (state.clockMins >= 600) {
+    } else if (state.clockMins >= getShiftMaxMins(state.day)) {
       state.clockRunning = false;
       openSettlement();
       return;
@@ -4133,9 +4177,10 @@ button:active:not(:disabled) {
       + '<div class="settle-line total"><span>오늘 순수입</span><span>+₵' + income + '</span></div>';
 
     const sClue = state.S >= 70 ? '※ 집 앞에 낯선 차가 세워져 있다.' : (state.S >= 50 ? '※ 감찰관이 창구 앞에서 한참을 멈춰 서 있었다.' : (state.S >= 30 ? '※ 퇴근길, 국장이 당신을 한 번 더 오래 쳐다보았다.' : ''));
+    const instantTxt = state.dayInstantCaught > 0 ? (' · 근무 중 즉시 적발 ' + state.dayInstantCaught + '건') : '';
     const auditHeader = sampleCount === 0
-      ? '[야간 표본 감사 보고] 감사 대상 없음 (적발 0건)'
-      : ('[야간 표본 감사 보고] 감사 대상 ' + sampleCount + '건 중 적발 ' + detectedCount + '건');
+      ? ('[야간 표본 감사 보고] 야간 대상 없음 (적발 0건' + instantTxt + ')')
+      : ('[야간 표본 감사 보고] 야간 대상 ' + sampleCount + '건 중 적발 ' + detectedCount + '건' + instantTxt);
     const reviewHtml = state.dayReviewLog.length
       ? '<details style="margin-top:8px;border-top:1px dashed #354556;padding-top:6px;"><summary style="cursor:pointer;color:#9CB0C4;font-size:0.78rem;">오늘 심사 복기 보기 (' + state.dayReviewLog.filter(r => r.ok).length + '/' + state.dayReviewLog.length + '건 규정 일치)</summary>'
         + '<div style="margin-top:6px;display:flex;flex-direction:column;gap:3px;font-size:0.75rem;">'
@@ -4542,7 +4587,9 @@ button:active:not(:disabled) {
 
     $('btn-start-new').addEventListener('click', () => {
       const p = state.flags['부모호칭'] || '아빠';
+      const prevSettings = Object.assign({}, state.settings);
       state = createFreshState(1);
+      state.settings = prevSettings;
       state.flags['부모호칭'] = p;
       state.flags['윤희호칭'] = p === '아빠' ? '엄마' : '아빠';
       applySettings();
