@@ -1302,6 +1302,23 @@ button:active:not(:disabled) {
 .toast.warn { border-color: #F4B942 !important; color: #FFF2D6 !important; }
 .toast.err { border-color: #E04F3E !important; color: #FFE1DE !important; }
 
+
+/* === 5 UNIQUE SYSTEMS CSS === */
+.word-token.redacted-ok {
+  background: #111418 !important; color: #111418 !important;
+  border-radius: 2px; padding: 0 4px; letter-spacing: 0.05em;
+  text-shadow: none; user-select: none;
+  box-shadow: inset 0 0 0 1px #000;
+}
+.stamp-plate.redact {
+  background: linear-gradient(180deg, #2D3238 0%, #171A1E 100%) !important;
+  border-color: #9CA3AF !important; color: #E5E7EB !important;
+}
+.stamp-mark.redact { color: #1E1F22; border-color: #1E1F22; background: rgba(30,31,34,0.16); }
+.dial-mode-tabs { display: flex; gap: 4px; justify-content: center; margin-bottom: 2px; }
+.dial-mode-tabs button { font-size: 0.68rem; padding: 2px 7px; }
+.dial-mode-tabs button.active { background: rgba(53,242,160,0.18); border-color: #35F2A0; color: #35F2A0; }
+
 </style>
 </head>
 <body>
@@ -1487,8 +1504,9 @@ button:active:not(:disabled) {
           </div>
         </div>
 
-        <div class="meter-dial-wrap">
-          <svg id="meter-dial-svg" width="244" height="114" viewBox="0 0 292 120"></svg>
+        <div class="meter-dial-wrap" style="display:flex;flex-direction:column;align-items:center;">
+          <div class="dial-mode-tabs"><button id="btn-view-dial" class="active">다이얼</button><button id="btn-view-radar">별자리 지도</button></div>
+          <svg id="meter-dial-svg" width="244" height="106" viewBox="0 0 292 120"></svg>
         </div>
 
         <div class="meter-readout">
@@ -1536,6 +1554,11 @@ button:active:not(:disabled) {
             <polygon points="10,25 13,18 22,9 27,14 18,23" fill="none" stroke="#3B3B3B" stroke-width="2.4"/>
           </svg>
           <span class="stamp-name edit">수정</span>
+        </button>
+        <button id="btn-stamp-redact" class="stamp-plate redact" disabled style="display:none;" title="위반 낱말을 검은 먹으로 지워 안전 통과 (보너스·복원 없음)">
+          <span class="stamp-key">4</span>
+          <svg width="26" height="26" viewBox="0 0 36 36"><rect x="4" y="10" width="28" height="16" fill="#111418" stroke="#9CA3AF" stroke-width="2.5"/></svg>
+          <span class="stamp-name">먹칠</span>
         </button>
       </div>
       <div class="rack-actions">
@@ -1769,6 +1792,15 @@ button:active:not(:disabled) {
     motif(isMetaphor) {
       const mult = isMetaphor ? 0.5 : 1;
       [523.25, 659.25, 783.99, 987.77].forEach((n, i) => this.tone(n * mult, 0.65, 'triangle', 0.09, i * 0.24));
+    },
+    eveningChord(restoredTotal) {
+      if (restoredTotal <= 0) return;
+      const layer1 = [261.63, 329.63, 392.00];
+      const layer2 = [493.88, 587.33];
+      const layer3 = [130.81, 659.25, 783.99];
+      layer1.forEach((n, i) => this.tone(n, 1.1, 'triangle', 0.055, i * 0.22));
+      if (restoredTotal >= 3) layer2.forEach((n, i) => this.tone(n, 1.2, 'sine', 0.045, 0.55 + i * 0.22));
+      if (restoredTotal >= 8) layer3.forEach((n, i) => this.tone(n, 1.4, 'triangle', 0.04, 0.95 + i * 0.2));
     }
   };
 
@@ -1905,6 +1937,10 @@ button:active:not(:disabled) {
       meterBrokenUntil: 0,
       meterBrokenDone: false,
       eveningEventDone: false,
+      driftWords: {},
+      meterView: 'dial',
+      lastMeterRes: null,
+      lastNullSlitAt: 0,
       flags: { '부모호칭': '아빠', '윤희호칭': '엄마', '하람옛말': 0, 'rel.노을': 0, 'rel.모리': 0, 'rel.국장': 0, 'rel.윤희': 0 },
       memos: [],
       familyMemos: [],
@@ -1963,7 +1999,7 @@ button:active:not(:disabled) {
         medMissed: state.medMissed, medGraceUsed: state.medGraceUsed, coldMedDue: state.coldMedDue,
         medExempt: state.medExempt, familyGone: state.familyGone, seoyeonHealth: state.seoyeonHealth,
         seoyeonSadDays: state.seoyeonSadDays, meterLv: state.meterLv, sentenceMode: state.sentenceMode,
-        prevResPassed: state.prevResPassed, resCargosSeen: state.resCargosSeen, flags: state.flags,
+        prevResPassed: state.prevResPassed, resCargosSeen: state.resCargosSeen, driftWords: state.driftWords, flags: state.flags,
         memos: state.memos, familyMemos: state.familyMemos,
         seoyeonQueue: state.seoyeonQueue, seoyeonNotes: state.seoyeonNotes,
         settings: state.settings
@@ -2358,6 +2394,7 @@ button:active:not(:disabled) {
     $('meter-locked-msg').style.display = meterUnlocked ? 'none' : 'block';
     $('meter-controls').style.display = meterUnlocked ? 'flex' : 'none';
     $('btn-stamp-edit').style.display = state.day >= 3 ? 'flex' : 'none';
+    $('btn-stamp-redact').style.display = state.day >= 3 ? 'flex' : 'none';
     $('btn-compare').style.display = state.day >= 4 ? 'inline-block' : 'none';
     $('btn-highlight-first').style.display = state.day >= 22 ? 'inline-block' : 'none';
     $('btn-sentence-mode').style.display = state.meterLv >= 2 ? 'inline-block' : 'none';
@@ -2386,7 +2423,7 @@ button:active:not(:disabled) {
     if (clockInterval) clearInterval(clockInterval);
     clockInterval = setInterval(() => {
       if (isClockPaused()) return;
-      const msPerMin = state.settings.relaxed ? 1050 : 700;
+      const msPerMin = state.settings.relaxed ? 950 : 550;
       const step = 100 / msPerMin;
       advanceClock(step);
     }, 100);
@@ -2413,6 +2450,13 @@ button:active:not(:disabled) {
       state.meterBrokenUntil = 0;
       $('meter-broken-bar').style.display = 'none';
       toast('측정기가 자동 복구되었습니다.');
+    }
+    if (state.currentCargo && state.envelopeOpened && !state.stamped && (state.clockMins - (state.currentCargo._openedAt || 0)) >= 28 && (state.clockMins - state.lastNullSlitAt) >= 45) {
+      state.lastNullSlitAt = state.clockMins;
+      const msg = state.currentCargo.memory
+        ? '기억 화물 앞에서 지체하는 패턴이 기록되었습니다. 감정은 오판의 원인입니다.'
+        : '평균 심사 시간을 초과했습니다. 규정은 망설임 없이 적용되어야 합니다.';
+      $('null-slit').innerHTML = '<span class="null-tag">NULL</span>' + msg;
     }
 
     if (state.clockMins >= 600) {
@@ -2479,6 +2523,7 @@ button:active:not(:disabled) {
     $('btn-stamp-pass').disabled = !canJudge;
     $('btn-stamp-deny').disabled = !canJudge;
     $('btn-stamp-edit').disabled = !canJudge;
+    $('btn-stamp-redact').disabled = !canJudge;
     $('btn-stamp-edit').classList.toggle('active-tool', state.editMode);
     $('btn-compare').classList.toggle('active', state.compareMode);
 
@@ -2569,8 +2614,43 @@ button:active:not(:disabled) {
       + '</g>'
       + '<text x="145" y="14" font-size="9.5" font-weight="700" fill="#C4462E" text-anchor="middle">L' + effLVal + (baseLVal !== effLVal ? ' (원래 ' + baseLVal + ')' : '') + '</text>'
       + '<text x="145" y="108" font-size="9.5" font-weight="700" fill="#4A5A68" text-anchor="middle">' + rangeLabel + '</text>'
-      + '<text x="73" y="89" font-size="9" font-weight="700" fill="#1E1F22" text-anchor="end">0</text>'
-      + '<text x="217" y="89" font-size="9" font-weight="700" fill="#1E1F22">100</text>';
+      + '<text x="73" y="89" font-size="9" font-weight="700" fill="#9CB0C4" text-anchor="end">0</text>'
+      + '<text x="217" y="89" font-size="9" font-weight="700" fill="#9CB0C4">100</text>';
+    state.lastMeterRes = { res, effLVal, baseLVal };
+    if (state.meterView === 'radar') renderSemanticRadar(res, effLVal);
+  }
+
+  function renderSemanticRadar(res, effLVal) {
+    const svg = $('meter-dial-svg');
+    const cx = 146, cy = 60, maxR = 52;
+    const target = state.meterTarget || '자유';
+    const rL = Math.max(10, Math.min(maxR - 4, maxR * (1 - effLVal / 100)));
+    const pts = [];
+    const seen = new Set();
+    if (res && res.lemma) {
+      pts.push({ word: res.lemma, val: res.displayed, current: true });
+      seen.add(res.lemma);
+    }
+    state.memos.filter(m => m.target === target).slice(0, 10).forEach(m => {
+      if (!seen.has(m.word)) { pts.push({ word: m.word, val: m.displayed, current: false }); seen.add(m.word); }
+    });
+    const dotsHtml = pts.map(p => {
+      const ang = ((LEX.hashStr(p.word + '|' + target) % 360) * Math.PI) / 180;
+      const dist = Math.max(8, Math.min(maxR - 3, maxR * (1 - p.val / 100)));
+      const x = cx + dist * Math.cos(ang);
+      const y = cy + dist * Math.sin(ang);
+      const col = p.val >= effLVal ? '#E04F3E' : '#35F2A0';
+      return '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="' + (p.current ? 4.5 : 3) + '" fill="' + col + '" stroke="#0D141A" stroke-width="1"/>'
+        + '<text x="' + (x + 5).toFixed(1) + '" y="' + (y + 3).toFixed(1) + '" font-size="8.5" fill="' + (p.current ? '#FFF' : '#B8C7D6') + '">' + escapeHtml(p.word) + '</text>';
+    }).join('');
+    svg.innerHTML =
+      '<rect x="6" y="4" width="280" height="112" rx="6" fill="#0B1117" stroke="#2D3E4E" stroke-width="1.5"/>'
+      + '<circle cx="' + cx + '" cy="' + cy + '" r="' + maxR + '" fill="none" stroke="#22303D" stroke-width="1"/>'
+      + '<circle cx="' + cx + '" cy="' + cy + '" r="' + rL.toFixed(1) + '" fill="rgba(224,79,62,0.10)" stroke="#E04F3E" stroke-width="1.5" stroke-dasharray="3 2"/>'
+      + '<circle cx="' + cx + '" cy="' + cy + '" r="6" fill="#E04F3E"/>'
+      + '<text x="' + cx + '" y="' + (cy - 9) + '" font-size="9" font-weight="700" fill="#FCA5A5" text-anchor="middle">' + escapeHtml(target) + '</text>'
+      + dotsHtml
+      + '<text x="14" y="16" font-size="8.5" fill="#8FA3B8">2D 의미 별자리 (적색 원 안 = L' + effLVal + ' 위반)</text>';
   }
 
   function renderRulebook() {
@@ -2614,6 +2694,11 @@ button:active:not(:disabled) {
       if (state.seoyeonNotes.length) {
         html += '<div style="font-size:0.74rem;font-weight:800;margin-bottom:4px;">[서연의 쪽지]</div>';
         html += state.seoyeonNotes.map(n => '<div class="memo-item seoyeon">D' + n.day + ' · ' + escapeHtml(n.text) + '</div>').join('');
+      }
+      const driftEntries = Object.entries(state.driftWords || {}).filter(([_, v]) => v.count >= 1);
+      if (driftEntries.length) {
+        html += '<div style="font-size:0.74rem;font-weight:800;margin:8px 0 4px;color:#F4B942;">[언어 전염 · NULL 감시]</div>';
+        html += driftEntries.map(([w, info]) => '<div class="memo-item seoyeon">「' + escapeHtml(w) + '」 확산 ' + info.count + '회' + (info.count >= 3 ? ' <strong style="color:#FCA5A5;">(감시 +8 적용 중)</strong>' : '') + '</div>').join('');
       }
       if (state.familyMemos.length) {
         html += '<div style="font-size:0.74rem;font-weight:800;margin:8px 0 4px;">[단어 가족 메모]</div>';
@@ -2688,7 +2773,10 @@ button:active:not(:disabled) {
 
     $('visitor-portrait').innerHTML = renderPortraitSVG(cargo.charId, 'normal');
     $('visitor-name').textContent = cargo.visitor;
-    $('visitor-speech').textContent = '"' + cargo.greeting + '"';
+    const driftKeys = Object.keys(state.driftWords || {});
+    const showDriftEcho = driftKeys.length > 0 && !cargo.memory && !cargo.tutorialTip && (LEX.hashStr(cargo.id + '|' + state.day) % 4 === 0);
+    const driftWordPick = showDriftEcho ? driftKeys[LEX.hashStr(cargo.id) % driftKeys.length] : null;
+    $('visitor-speech').textContent = '"' + cargo.greeting + (driftWordPick ? (' …참, 요즘 거리에서 다들 「' + driftWordPick + '」라는 말을 쓰더라고요."') : '"');
 
     if (cargo.tutorialTip && !cargo.dilemma) {
       $('tutorial-tip-text').textContent = cargo.tutorialTip;
@@ -2763,7 +2851,7 @@ button:active:not(:disabled) {
       const cls = ['word-token'];
       if (isSelected) cls.push('selected-probe');
       if (state.editMode && !edited) cls.push('edit-mode-hint');
-      if (edited) cls.push('edited-ok');
+      if (edited) cls.push(edited.redacted ? 'redacted-ok' : 'edited-ok');
       let display = edited
         ? escapeHtml(edited.surface)
         : escapeHtml(p);
@@ -2978,6 +3066,7 @@ button:active:not(:disabled) {
     const cb = state.settings.colorblind;
     if (st.type === 'pass') return '<div class="stamp-mark pass wobble">' + (cb ? '● ' : '') + '통과</div>';
     if (st.type === 'deny') return '<div class="stamp-mark deny wobble">' + (cb ? '▲ ' : '') + '압수</div>';
+    if (st.type === 'redact') return '<div class="stamp-mark redact">■ 먹칠</div>';
     return '<div class="stamp-mark edit wobble">' + (cb ? '◆ ' : '') + '수정</div>';
   }
 
@@ -3231,7 +3320,9 @@ button:active:not(:disabled) {
       const isMem = t === '감정어'
         ? LEX.emotionMembers(state.day, ph).includes(vLemma)
         : (vLemma === t || (LEX.TERMS[t].members && LEX.TERMS[t].members.includes(vLemma)) || LEX.COMPOUND[vLemma] === t);
-      const F = isMem ? 100 : LEX.trueSim(vLemma, t).v;
+      const driftInfo = (state.driftWords && state.driftWords[vLemma]) || null;
+      const driftPenalty = (driftInfo && driftInfo.count >= 3) ? 8 : 0;
+      const F = isMem ? 100 : Math.min(99, LEX.trueSim(vLemma, t).v + driftPenalty);
       const L = LEX.effL(t, state.day, ph, c.origin);
       if (isMem || F >= L) {
         illegal = t + (isMem ? ' 목록 어휘 자체' : (' 유사도 ' + F + ' ≥ 경계 ' + L));
@@ -3379,6 +3470,16 @@ button:active:not(:disabled) {
       queueNightAudit(c, unresolved);
     } else {
       state.dayBonus += bonus;
+      editList.forEach(ed => {
+        if (!state.driftWords) state.driftWords = {};
+        const dRec = state.driftWords[ed.vLemma] || { count: 0, firstDay: state.day };
+        dRec.count++;
+        state.driftWords[ed.vLemma] = dRec;
+        if (dRec.count === 3) {
+          $('null-slit').innerHTML = '<span class="null-tag">NULL</span>비정상 확산 감지: 「' + escapeHtml(ed.vLemma) + '」 3회 누적 — 감시 보정(+8)이 적용됩니다.';
+          toast('⚠ NULL 경고: 「' + ed.vLemma + '」 남용 감지! 다음부터 경계 압박(+8) 적용', 'warn');
+        }
+      });
       if (c.memory) {
         state.editPs.push(avgP);
         if (avgP >= 80) {
@@ -3406,6 +3507,49 @@ button:active:not(:disabled) {
     state.dayReviewLog.push({ visitor: c.visitor, action: '수정(' + avgP + '%)', expected: ev.violations.length ? ev.violations.map(v => v.rule + ':' + v.word).join(', ') : '적법(통과)', ok: ev.violations.length > 0 && unresolved.length === 0 });
     $('visitor-portrait').innerHTML = renderPortraitSVG(c.charId, 'normal');
     $('visitor-speech').textContent = '"' + renderTemplate(reactLine, editCtx) + '"';
+    updateWorkHUD();
+    updateToolButtons();
+    renderDeskCargo();
+    bouncePaper();
+  }
+
+
+  function stampRedact() {
+    const c = state.currentCargo;
+    if (state.day < 3 || !c || !state.envelopeOpened || state.stamped || state.dilemmaOpen) return;
+    const ph = cargoPhase(c);
+    const ev = c._eval || evaluateCargoDisplay(c, ph);
+    if (ev.violations.some(v => v.uneditable)) {
+      SFX.warn();
+      toast('서류·허가증 위반(R04/R08)은 먹칠로 가릴 수 없습니다. 압수하세요.', 'warn');
+      return;
+    }
+    if (ev.violations.length === 0) {
+      SFX.warn();
+      toast('위반 낱말이 없는 적법 화물입니다. 그대로 통과시키세요.', 'warn');
+      return;
+    }
+    if (state.day >= 28 && !c._measured) addWarning('R15 측정 의무 위반 (측정 없이 먹칠)');
+    SFX.stamp('deny');
+    state.editMode = false;
+    state.compareMode = false;
+    const parts = c.body.split(/(\s+)/);
+    let tid = 0;
+    parts.forEach(p => {
+      if (/^\s+$/.test(p)) return;
+      const pLem = LEX.lemmaOf(p);
+      const hit = ev.violations.some(v => v.word === p || (v.lemma && v.lemma === pLem) || LEX.lemmaOf(v.word) === pLem || (v.rule === 'R11' && tid === 0));
+      if (hit) {
+        c.edits[tid] = { orig: p, origLemma: pLem, replacement: '███', vLemma: '███', surface: '███', P: 0, redacted: true };
+      }
+      tid++;
+    });
+    state.dayProcessed++;
+    state.dayReviewLog.push({ visitor: c.visitor, action: '먹칠(삭제)', expected: ev.violations.map(v => v.rule + ':' + v.word).join(', '), ok: true });
+    state.stamped = { type: 'redact', summary: '먹칠 검열 완료 (+₵5 · 안전 통과, 보너스·기억 복원 없음)' };
+    $('visitor-portrait').innerHTML = renderPortraitSVG(c.charId, 'sad');
+    $('visitor-speech').textContent = '"…중요한 말이 까맣게 지워졌네요. 그래도 편지는 전해 주시니 고맙습니다."';
+    recordCargoFlags(c, 'DENY');
     updateWorkHUD();
     updateToolButtons();
     renderDeskCargo();
@@ -3702,7 +3846,7 @@ button:active:not(:disabled) {
     const resBonus = (state.T >= 30 && state.prevResPassed > 0) ? (state.prevResPassed * 10) : 0;
     state.prevResPassed = state.dayAuditQueue.filter(it => !it.detected && it.cargo.resistance).length;
 
-    const basePay = 20;
+    const basePay = 10;
     const procPay = state.dayProcessed * 5;
     const diligence = state.rating >= 80 ? 10 : 0;
     const income = Math.max(0, basePay + procPay + state.dayBonus + diligence + resBonus - state.dayFines);
@@ -3887,6 +4031,13 @@ button:active:not(:disabled) {
   function openEvening() {
     const d = DAYS_DATA[state.day];
     $('evening-day-tag').textContent = d.dateLabel + ' 저녁 · 집';
+    const restoredTotal = state.M + state.E;
+    const prog = Math.min(1, restoredTotal / 12);
+    const heroImg = document.querySelector('.evening-hero img');
+    if (heroImg) {
+      heroImg.style.filter = 'saturate(' + (0.45 + prog * 0.85).toFixed(2) + ') sepia(' + (prog * 0.16).toFixed(2) + ') brightness(' + (0.86 + prog * 0.18).toFixed(2) + ')';
+    }
+    SFX.eveningChord(restoredTotal);
 
     const lines = [];
     if (state.familyGone) {
@@ -3911,6 +4062,11 @@ button:active:not(:disabled) {
       d.evening.director.forEach(line => {
         if (evalWhen(line.when)) lines.push({ s: '국장 문태오', t: line.t });
       });
+    }
+    const driftedList = Object.keys(state.driftWords || {});
+    if (driftedList.length > 0 && state.day >= 4 && !state.familyGone) {
+      const dw = driftedList[state.day % driftedList.length];
+      lines.push({ s: '하람', t: '{부모호칭}, 오늘 학교 애들도 다 「' + dw + '」라고 말하던데요? 그 말 참 따뜻해요.' });
     }
     if (d.evening && Array.isArray(d.evening.extra)) {
       d.evening.extra.forEach(line => {
@@ -4166,6 +4322,20 @@ button:active:not(:disabled) {
     $('btn-stamp-pass').addEventListener('click', stampPass);
     $('btn-stamp-deny').addEventListener('click', openDenyModal);
     $('btn-stamp-edit').addEventListener('click', toggleEditMode);
+    $('btn-stamp-redact').addEventListener('click', stampRedact);
+    $('btn-view-dial').addEventListener('click', () => {
+      state.meterView = 'dial';
+      $('btn-view-dial').classList.add('active');
+      $('btn-view-radar').classList.remove('active');
+      if (state.lastMeterRes) renderMeterDial(state.lastMeterRes.res, state.lastMeterRes.effLVal, state.lastMeterRes.baseLVal);
+    });
+    $('btn-view-radar').addEventListener('click', () => {
+      state.meterView = 'radar';
+      $('btn-view-radar').classList.add('active');
+      $('btn-view-dial').classList.remove('active');
+      const r = state.lastMeterRes || { res: null, effLVal: 70, baseLVal: 70 };
+      renderSemanticRadar(r.res, r.effLVal);
+    });
     $('btn-compare').addEventListener('click', toggleCompareMode);
     $('btn-highlight-first').addEventListener('click', () => {
       state.highlightFirst = !state.highlightFirst;
@@ -4258,6 +4428,7 @@ button:active:not(:disabled) {
       else if (e.key === '1') stampPass();
       else if (e.key === '2') openDenyModal();
       else if (e.key === '3') toggleEditMode();
+      else if (e.key === '4') stampRedact();
       else if (e.key === ' ') { e.preventDefault(); toggleCompareMode(); }
       else if (e.key === 'm' || e.key === 'M') runMeasurement(e.shiftKey ? 'fine' : 'fast');
       else if (e.key === 'F1') { e.preventDefault(); $('rulebook-col').classList.toggle('mobile-open'); }
