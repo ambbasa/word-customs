@@ -54,6 +54,7 @@ import {
   renderRulebook
 } from './ui-hud.js';
 import { addWarning, openSettlement, showEnding } from './day-cycle.js';
+import { playCutscene, getD30Cutscene } from './cutscene.js';
 
 function isClockPaused() {
   const s = runtime.state;
@@ -680,6 +681,13 @@ export function renderDeskCargo() {
   const s = runtime.state;
   const c = s.currentCargo;
   if (!c) return;
+  // D30 최종 화물 컷씬 — 「사전」이 책상에 처음 오를 때 한 번만 무대에 올린다.
+  // (선택 버튼은 그대로 두고 카드가 그 위에 뜨는 오버레이라, 결정 흐름이 안 바뀐다.)
+  if (isD30FinalCargo(c) && !s._d30CutsceneShown) {
+    s._d30CutsceneShown = true;
+    const spec = getD30Cutscene(c);
+    if (spec) void playCutscene(spec);
+  }
   // (G) D1 첫 화물 가이드 — 첫 화물이 책상에 오르면 시작하고, 도장을 찍으면 끝난다.
   if (s.day === 1 && s.queueIndex === 0 && !s.tutorialDone) {
     if (s.tutorialStep === 0) { s.tutorialStep = 1; showD1Guide(); }

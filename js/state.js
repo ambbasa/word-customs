@@ -153,6 +153,8 @@ export const runtime = {
   timers: {
     clock: null,
     intro: null,
+    introStages: [],
+    eveningType: null,
     measure: null
   },
   isComposingIME: false,
@@ -261,6 +263,8 @@ export function resetDayState(dayNum) {
     settledDay: 0,
     eveningAdviceNotes: [],
     _d30SettleSummary: null,
+    _eveningTyped: false,
+    _d30CutsceneShown: false,
     highlightFirst: false,
     meterBrokenUntil: 0,
     meterBrokenDone: false,

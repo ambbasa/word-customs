@@ -35,6 +35,7 @@ import {
   computeD30Settlement
 } from './logic.js';
 import { $, showScreen, toast, applySettings, renderAlignmentDashboard } from './ui-hud.js';
+import { playCutscene, getEveningCutscene, renderTypedDialogue } from './cutscene.js';
 
 export function addWarning(reason) {
   const s = runtime.state;
@@ -50,8 +51,23 @@ export function addWarning(reason) {
   }
 }
 
+// 인트로 타이머 정리 (건너뛰기·다음 날 이동 시 무대 전환 타이머가 뒤늦게 터지지 않게).
+export function stopIntro() {
+  if (runtime.timers.intro) { clearInterval(runtime.timers.intro); runtime.timers.intro = null; }
+  (runtime.timers.introStages || []).forEach(t => clearTimeout(t));
+  runtime.timers.introStages = [];
+  document.body.classList.remove('cutscene-on');
+  const bg = $('intro-stage-bg');
+  if (bg) { bg.classList.remove('on'); bg.style.backgroundImage = ''; }
+}
+
+// 인트로 시퀀스 — 3막 무대.
+// 1막 NULL 정기 방송(기존 대사 그대로, 한 줄씩), 2막 도시(bg_title.jpg 크로스페이드),
+// 3막 제7창구(bg_desk.jpg 크로스페이드) 뒤 "제7창구 출근" 버튼. 건너뛰기 가능.
 export function playIntro() {
+  stopIntro();
   showScreen('screen-intro');
+  document.body.classList.add('cutscene-on');
   const lines = [
     '"언어는 비효율이었습니다.',
     '같은 뜻에 수천 개의 껍데기가 붙어 있었습니다.',
@@ -65,12 +81,12 @@ export function playIntro() {
   const container = $('intro-lines');
   container.innerHTML = '';
   $('btn-intro-next').style.display = 'none';
-  if (runtime.timers.intro) clearInterval(runtime.timers.intro);
   let idx = 0;
   const renderStep = () => {
     if (idx >= lines.length) {
       clearInterval(runtime.timers.intro);
-      $('btn-intro-next').style.display = 'inline-block';
+      runtime.timers.intro = null;
+      playIntroStage2();
       return;
     }
     SFX.nullBeep();
@@ -80,6 +96,29 @@ export function playIntro() {
   };
   renderStep();
   runtime.timers.intro = setInterval(renderStep, 750);
+}
+
+function playIntroStage2() {
+  const bg = $('intro-stage-bg');
+  if (bg) {
+    bg.style.backgroundImage = 'url("assets/bg_title.jpg")';
+    requestAnimationFrame(() => bg.classList.add('on'));
+  }
+  runtime.timers.introStages.push(setTimeout(() => {
+    const bg2 = $('intro-stage-bg');
+    if (bg2) {
+      bg2.classList.remove('on');
+      setTimeout(() => {
+        bg2.style.backgroundImage = 'url("assets/bg_desk.jpg")';
+        bg2.classList.add('on');
+        runtime.timers.introStages.push(setTimeout(() => {
+          $('btn-intro-next').style.display = 'inline-block';
+        }, 1300));
+      }, 1150);
+    } else {
+      $('btn-intro-next').style.display = 'inline-block';
+    }
+  }, 1600));
 }
 
 const DAILY_CITY_HEADLINES = Object.freeze([
@@ -188,6 +227,7 @@ function deliverSeoyeonNotes(dayNum) {
 export function startDayMorning(dayNum) {
   const dObj = runtime.DAYS_DATA[dayNum];
   if (!dObj) return;
+  document.body.classList.remove('cutscene-on');
   resetDayState(dayNum);
   const s = runtime.state;
   s.dayMeasureQuota = calculateDayMeasureQuota(dayNum, s.meterLv, dObj);
@@ -752,21 +792,36 @@ export function openEvening() {
   renderAlignmentDashboard('evening-alignment');
   const renderDialogue = () => {
     const lines = buildEveningDialogueLines(d, trackRel);
-    $('evening-dialogue').innerHTML = lines.map(line =>
-      '<div class="dialogue-line"><span class="speaker-tag">' + escapeHtml(line.s || '') + '</span>' + escapeHtml(renderTemplate(line.t)) + '</div>'
-    ).join('') || '<div class="dialogue-line">조용한 저녁이 지났다.</div>';
+    const box = $('evening-dialogue');
+    // 저녁 대화는 첫 렌더링 때만 타이핑 연출, 이후(핵심 선택 해결 등) 재렌더링은 즉시 표시.
+    if (!s._eveningTyped) {
+      s._eveningTyped = true;
+      renderTypedDialogue(box, lines);
+    } else {
+      box.innerHTML = lines.map(line =>
+        '<div class="dialogue-line"><span class="speaker-tag">' + escapeHtml(line.s || '') + '</span>' + escapeHtml(renderTemplate(line.t)) + '</div>'
+      ).join('') || '<div class="dialogue-line">조용한 저녁이 지났다.</div>';
+    }
   };
   renderDialogue();
   renderEveningEventBox(d.evening && d.evening.event, renderDialogue);
   renderSeoyeonAdviceBox();
 
+  // 스토리 컷씬 — 핵심 저녁 비트를 전 화면 카드로 한 번 무대에 올린다.
+  // (기존 저녁 대화·선택 박스는 그대로 두고, 카드가 그 위에 뜨는 오버레이라 흐름이 안 바뀐다.)
+  // 복원 시네마틱은 컷씬이 끝난 뒤에 뜬다 — 두 모달이 겹치면 복원 카드가 컷씬을 덮어버린다.
+  const cutsceneSpec = getEveningCutscene(s.day, d);
+  const playRestorations = () => {
+    if (s.dayRestorations.length > 0) {
+      s._restoreQueue = s.dayRestorations.slice();
+      playRestorationCinematic(s._restoreQueue.shift());
+    }
+  };
+  if (cutsceneSpec) void playCutscene(cutsceneSpec).then(playRestorations);
+  else playRestorations();
+
   $('btn-next-day').textContent = s.day >= 30 ? '근무 마침' : ('잠자리에 든다 → D' + (s.day + 1));
   showScreen('screen-evening');
-
-  if (s.dayRestorations.length > 0) {
-    s._restoreQueue = s.dayRestorations.slice();
-    playRestorationCinematic(s._restoreQueue.shift());
-  }
 }
 
 export function playRestorationCinematic(item) {

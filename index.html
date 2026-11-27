@@ -32,6 +32,9 @@
   <div class="load-card" id="load-card-msg">stages 데이터를 불러오는 중입니다…</div>
 </div>
 
+<div id="letterbox-top" class="letterbox-bar top"></div>
+<div id="letterbox-bottom" class="letterbox-bar bottom"></div>
+
 <div id="toast-container"></div>
 
 <section id="screen-title" class="screen active">
@@ -64,6 +67,7 @@
 </section>
 
 <section id="screen-intro" class="screen">
+  <div id="intro-stage-bg" class="intro-stage-bg"></div>
   <div class="intro-box">
     <div class="intro-header">
       <span>[NULL 국가 언어관리국 정기 방송 — 2057년 아카이브]</span>
@@ -338,6 +342,23 @@
     </div>
   </div>
 </section>
+
+<div id="modal-cutscene">
+  <div class="cutscene-stage">
+    <div id="cutscene-kicker" class="cutscene-kicker"></div>
+    <div class="cutscene-main">
+      <div id="cutscene-portrait" class="cutscene-portrait" style="display:none;"></div>
+      <div class="cutscene-body">
+        <div id="cutscene-speaker" class="cutscene-speaker"></div>
+        <div id="cutscene-text" class="cutscene-text"></div>
+      </div>
+    </div>
+    <div class="cutscene-foot">
+      <button id="btn-cutscene-skip" class="btn-secondary">건너뛰기</button>
+      <button id="btn-cutscene-next" class="btn-primary">계속 ▸</button>
+    </div>
+  </div>
+</div>
 
 <div id="modal-restore">
   <div class="restore-stage">

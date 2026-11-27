@@ -39,7 +39,7 @@ function test(name, fn) {
 console.log('=== Word Customs Refactoring Verification Suite ===');
 
 test('All ES modules load with valid syntax and zero circular dependencies', () => {
-  const jsFiles = ['config.js', 'sfx.js', 'state.js', 'logic.js', 'ui-hud.js', 'day-cycle.js', 'work.js', 'main.js'];
+  const jsFiles = ['config.js', 'sfx.js', 'state.js', 'logic.js', 'ui-hud.js', 'cutscene.js', 'day-cycle.js', 'work.js', 'main.js'];
   const graph = {};
   for (const f of jsFiles) {
     const src = fs.readFileSync(path.join(root, 'js', f), 'utf8');
@@ -324,6 +324,63 @@ test('Mercy headline rotates across 3 variants by day', async () => {
     seen.add(dayCycle.getMorningHeadline(dayNum));
   }
   assert.equal(seen.size, 3, 'Mercy headline should rotate through 3 variants, got: ' + [...seen].join(' | '));
+});
+
+test('Cutscene beats: evening cutscene specs are data-driven and flag-aware', async () => {
+  const cutscene = await import('../js/cutscene.js');
+
+  // 화자 → 초상화 매핑
+  assert.equal(cutscene.speakerPortraitKey('국장 문태오'), 'director');
+  assert.equal(cutscene.speakerPortraitKey('서연'), 'seoyeon');
+  assert.equal(cutscene.speakerPortraitKey('모리 (택배 기사)'), 'mori');
+  assert.equal(cutscene.speakerPortraitKey('독백'), null);
+  assert.equal(cutscene.speakerPortraitKey('연출'), null);
+
+  // D10 국장 인터뷰 — 평정에 따라 다른 첫 대사
+  runtime.state = applyJumpPreset(createFreshState(10), 10);
+  runtime.state.rating = 80;
+  const d10hi = cutscene.getEveningCutscene(10, runtime.DAYS_DATA[10]);
+  assert(d10hi && d10hi.title.includes('국장의 방문'), 'D10 should stage the director interview');
+  assert.equal(d10hi.lines.length, 2, 'High-rating interview should pick 2 lines');
+  assert(d10hi.lines[0].t.includes('깔끔하더군'), 'High-rating line should be picked');
+  runtime.state.rating = 50;
+  const d10lo = cutscene.getEveningCutscene(10, runtime.DAYS_DATA[10]);
+  assert(d10lo.lines[0].t.includes('실수가 잦아'), 'Low-rating line should be picked');
+
+  // D28 국장 고백 — #10 수락 분기
+  runtime.state = applyJumpPreset(createFreshState(28), 28);
+  runtime.state.flags['#10'] = '수락';
+  const d28 = cutscene.getEveningCutscene(28, runtime.DAYS_DATA[28]);
+  assert(d28 && d28.title.includes('국장의 고백'), 'D28 should stage the director confession');
+  assert(d28.lines[0].t.includes('문서준'), 'Confession line should name 문서준');
+
+  // D25 NULL 거래 — 이벤트 텍스트가 컷씬 대사가 된다
+  runtime.state = applyJumpPreset(createFreshState(25), 25);
+  const d25 = cutscene.getEveningCutscene(25, runtime.DAYS_DATA[25]);
+  assert(d25 && d25.title.includes('NULL의 거래'), 'D25 should stage the NULL trade');
+  assert.equal(d25.lines[0].s, 'NULL');
+  assert(d25.lines[0].t.includes('NULL입니다'), 'NULL trade text should be staged');
+
+  // D1 첫 저녁·D16 초성·D17 그리움 — 인트로 비트
+  runtime.state = applyJumpPreset(createFreshState(1), 1);
+  const d1 = cutscene.getEveningCutscene(1, runtime.DAYS_DATA[1]);
+  assert(d1 && d1.lines.length === 3 && d1.lines[0].s === '윤희', 'D1 first evening should stage 3 family lines');
+  const d16 = cutscene.getEveningCutscene(16, runtime.DAYS_DATA[16]);
+  assert(d16 && d16.title.includes('초성'), 'D16 should stage the initial-consonant beat');
+  const d17 = cutscene.getEveningCutscene(17, runtime.DAYS_DATA[17]);
+  assert(d17 && d17.title.includes('그리움'), 'D17 should stage the longing beat');
+
+  // 평범한 날은 컷씬 없음
+  runtime.state = applyJumpPreset(createFreshState(5), 5);
+  assert.equal(cutscene.getEveningCutscene(5, runtime.DAYS_DATA[5]), null, 'Ordinary days should not stage a cutscene');
+
+  // D30 최종 화물 — 화물 데이터 원문 그대로
+  const finalCargo = runtime.DAYS_DATA[30].cargos[runtime.DAYS_DATA[30].cargos.length - 1];
+  const d30 = cutscene.getD30Cutscene(finalCargo);
+  assert(d30 && d30.title.includes('마지막 화물'), 'D30 should stage the final cargo');
+  assert(d30.lines[0].t.includes('마지막 배달'), 'Final cargo greeting should be staged');
+  assert(d30.lines[1].t.includes('있었던 말'), 'Final cargo body should be staged');
+  assert.equal(cutscene.getD30Cutscene(null), null);
 });
 
 console.log(`\nALL ${passed} TESTS PASSED!`);

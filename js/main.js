@@ -22,6 +22,7 @@ import {
 } from './ui-hud.js';
 import {
   playIntro,
+  stopIntro,
   startDayMorning,
   openSettlement,
   confirmSettlement,
@@ -153,10 +154,10 @@ function bindTitleEvents() {
     startDayMorning(runtime.state.day);
   });
   $('btn-intro-skip').addEventListener('click', () => {
-    if (runtime.timers.intro) clearInterval(runtime.timers.intro);
+    stopIntro();
     startDayMorning(1);
   });
-  $('btn-intro-next').addEventListener('click', () => startDayMorning(1));
+  $('btn-intro-next').addEventListener('click', () => { stopIntro(); startDayMorning(1); });
   $('btn-start-shift').addEventListener('click', startWorkShift);
 }
 
@@ -291,7 +292,7 @@ function bindModalAndSettingsEvents() {
 function bindKeyboardShortcuts() {
   window.addEventListener('keydown', e => {
     if (e.isComposing || e.keyCode === 229) return;
-    const modalOpen = ['modal-deny', 'modal-dict', 'modal-revision', 'modal-settings', 'modal-timeline', 'modal-dilemma']
+    const modalOpen = ['modal-deny', 'modal-dict', 'modal-revision', 'modal-settings', 'modal-timeline', 'modal-dilemma', 'modal-cutscene']
       .some(id => $(id) && $(id).classList.contains('active'));
 
     if (e.key === 'Escape') {
@@ -303,6 +304,7 @@ function bindKeyboardShortcuts() {
       else if ($('modal-dict').classList.contains('active')) $('modal-dict').classList.remove('active');
       else if ($('modal-revision').classList.contains('active')) { $('modal-revision').classList.remove('active'); s.revisionOpen = false; }
       else if ($('modal-settings').classList.contains('active')) closeSettingsModal();
+      else if ($('modal-cutscene') && $('modal-cutscene').classList.contains('active')) { /* 컷씬이 Esc를 직접 처리한다 */ }
       else if ($('screen-work').classList.contains('active')) openSettingsModal();
       return;
     }

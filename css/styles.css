@@ -1691,3 +1691,87 @@ button:active:not(:disabled) {
     gap: 5px;
   }
 }
+
+/* ===== 스토리 연출: 화면 전환 · 레터박스 · 컷씬 · 타이핑 (8차) ===== */
+@keyframes screenFade { from { opacity: 0; } to { opacity: 1; } }
+.screen.active { animation: screenFade 0.35s ease; }
+
+/* 레터박스 — 컷씬·인트로 무대 때만 위아래 검은 띠를 깐다 */
+.letterbox-bar {
+  position: fixed; left: 0; right: 0; height: 7vh; z-index: 260;
+  background: #0B1117; pointer-events: none;
+  transition: transform 0.45s ease;
+}
+.letterbox-bar.top { top: 0; transform: translateY(-102%); }
+.letterbox-bar.bottom { bottom: 0; transform: translateY(102%); }
+body.cutscene-on .letterbox-bar.top { transform: translateY(0); }
+body.cutscene-on .letterbox-bar.bottom { transform: translateY(0); }
+
+/* 컷씬 카드 */
+#modal-cutscene {
+  position: fixed; inset: 0; z-index: 250;
+  background: rgba(11, 17, 23, 0.94);
+  display: none; align-items: center; justify-content: center; padding: 18px;
+}
+#modal-cutscene.active { display: flex; animation: screenFade 0.3s ease; }
+.cutscene-stage {
+  max-width: 680px; width: 100%;
+  color: #EEF1EC; font-family: var(--font-serif);
+}
+.cutscene-kicker {
+  font-family: var(--font-ui); font-size: 0.78rem; font-weight: 800;
+  color: #F4B942; letter-spacing: 0.06em; margin-bottom: 14px;
+}
+.cutscene-main {
+  display: flex; gap: 18px; align-items: flex-start;
+  min-height: 190px;
+}
+.cutscene-portrait {
+  flex: 0 0 132px; width: 132px; height: 168px;
+  border: 2.5px solid #EEF1EC; overflow: hidden; background: #22303D;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.55);
+  animation: screenFade 0.4s ease;
+}
+.cutscene-portrait img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cutscene-body { flex: 1; min-width: 0; }
+.cutscene-speaker {
+  font-family: var(--font-ui); font-weight: 800; font-size: 0.95rem;
+  color: #F4B942; margin-bottom: 8px;
+}
+.cutscene-text {
+  font-size: 1.06rem; line-height: 1.85; font-weight: 700;
+  min-height: 120px; cursor: pointer;
+}
+.cutscene-foot {
+  display: flex; justify-content: space-between; gap: 10px; margin-top: 18px;
+}
+.cutscene-foot .btn-secondary { background: transparent; color: #9CB0C4; border-color: #4A5A68; box-shadow: none; }
+.cutscene-foot .btn-secondary:hover { background: #1A2632; }
+
+/* 인트로 무대 배경 (도시 → 창구 크로스페이드) */
+.intro-stage-bg {
+  position: absolute; inset: 0; z-index: 0;
+  background-size: cover; background-position: center;
+  opacity: 0; transition: opacity 1.2s ease;
+  filter: brightness(0.55) saturate(0.85);
+}
+.intro-stage-bg.on { opacity: 1; }
+#screen-intro .intro-box { position: relative; z-index: 1; }
+
+/* 저녁 대화 — 화자 초상화 + 타이핑 커서 */
+.dialogue-line { display: flex; align-items: flex-start; gap: 8px; }
+.dlg-portrait { flex: 0 0 34px; width: 34px; height: 42px; overflow: hidden; border: 2px solid var(--ink); background: #E5DAC2; margin-top: 1px; }
+.dlg-portrait img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.dlg-text { flex: 1; min-width: 0; }
+.typing::after {
+  content: '▍'; color: #F4B942; margin-left: 1px;
+  animation: caretBlink 0.7s steps(1) infinite;
+}
+@keyframes caretBlink { 50% { opacity: 0; } }
+
+/* 움직임 감소 설정 — 모든 연출 애니메이션을 끈다 */
+@media (prefers-reduced-motion: reduce) {
+  .screen.active, #modal-cutscene.active, .cutscene-portrait { animation: none !important; }
+  .letterbox-bar, .intro-stage-bg { transition: none !important; }
+  .typing::after { animation: none !important; content: ''; }
+}
