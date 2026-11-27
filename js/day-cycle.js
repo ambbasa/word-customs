@@ -523,6 +523,9 @@ export function renderSettleExpenses() {
 
 export function confirmSettlement() {
   const s = runtime.state;
+  // (P1) 정산 화면이 뜨기 전(오늘 정산 미실행)에는 확정하지 않는다.
+  // 정산 확정 버튼이 숨은 상태로 클릭되면 _settleIncome이 undefined라 잔고가 NaN이 된다.
+  if (s.settledDay !== s.day) return;
   const dr = runtime.settleDraft;
   s.credits = s.credits + s._settleIncome - calcSettleTotalCost();
   // D30은 퇴근 정산 뒤 바로 엔딩으로 가므로, 최종 정산 표시용 내역을 저장해 둔다.
