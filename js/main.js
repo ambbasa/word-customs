@@ -9,7 +9,7 @@ import {
   saveProgress,
   loadProgress
 } from './state.js';
-import { getShiftMaxMins } from './logic.js';
+import { getShiftMaxMins, isLinguistActive } from './logic.js';
 import {
   $,
   toast,
@@ -318,7 +318,7 @@ function bindKeyboardShortcuts() {
       if (e.key === 'Enter') e.preventDefault();
       if (s.stamped) {
         finishCurrentCargo();
-        if (!s.currentCargo && (s.settings.linguist || s.clockMins < getShiftMaxMins(s.day))) callNextVisitor();
+        if (!s.currentCargo && (isLinguistActive() || s.clockMins < getShiftMaxMins(s.day))) callNextVisitor();
       } else if (!s.currentCargo) {
         callNextVisitor();
       } else if (e.key === 'Enter' && !s.envelopeOpened) {

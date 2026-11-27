@@ -90,7 +90,7 @@ test('Every DOM element ID queried via $(...) in main/ui/day-cycle/work exists i
   assert.deepEqual(missing, [], `Missing DOM IDs: ${missing.join(', ')}`);
 });
 
-test('All 30 days JSON (336 cargos) match ENGINE.evaluate with 0 mismatches', () => {
+test('All 30 days JSON (335 cargos) match ENGINE.evaluate with 0 mismatches', () => {
   let total = 0;
   for (let d = 1; d <= 30; d++) {
     runtime.state = createFreshState(d);
@@ -102,7 +102,7 @@ test('All 30 days JSON (336 cargos) match ENGINE.evaluate with 0 mismatches', ()
       assert.equal(ev.violations.length, jsonViols.length, `Mismatch on ${c.id}`);
     }
   }
-  assert.equal(total, 336);
+  assert.equal(total, 335); // D1 튜토리얼 날 재구성(4건→3건)으로 336→335
 });
 
 test('evalWhen handles composite OR expressions and story flags accurately', () => {
@@ -183,7 +183,8 @@ test('Economy simulation with GAME_CONFIG stays solvent across D1~D30', () => {
   let bal = config.GAME_CONFIG.STARTING_CREDITS;
   let minBal = bal;
   for (let d = 1; d <= 30; d++) {
-    const income = config.GAME_CONFIG.BASE_PAY + runtime.DAYS_DATA[d].cargos.length * config.GAME_CONFIG.PROC_PAY_NORMAL;
+    const income = config.GAME_CONFIG.BASE_PAY + runtime.DAYS_DATA[d].cargos.length * config.GAME_CONFIG.PROC_PAY_NORMAL
+      + (d === 1 ? config.GAME_CONFIG.TUTORIAL_STIPEND : 0); // D1 튜토리얼 수당으로 4건→3건 수입 감소 보정
     const c = logic.calculateDailyCosts(d, '보통', false, false);
     bal += income - (c.rentCost + c.foodCost + c.heatCost + c.medCost + c.coldCost);
     minBal = Math.min(minBal, bal);
@@ -381,6 +382,113 @@ test('Cutscene beats: evening cutscene specs are data-driven and flag-aware', as
   assert(d30.lines[0].t.includes('마지막 배달'), 'Final cargo greeting should be staged');
   assert(d30.lines[1].t.includes('있었던 말'), 'Final cargo body should be staged');
   assert.equal(cutscene.getD30Cutscene(null), null);
+});
+
+test('Clock display is unambiguous: 12-hour labels (오전/오후)', () => {
+  assert.equal(logic.formatClock12(0), '오전 8:00');
+  assert.equal(logic.formatClock12(30), '오전 8:30');
+  assert.equal(logic.formatClock12(60), '오전 9:00');
+  assert.equal(logic.formatClock12(240), '오후 12:00');
+  assert.equal(logic.formatClock12(420), '오후 3:00');
+  assert.equal(logic.formatClock12(600), '오후 6:00');
+  // 24시간 표기와 구분된다 — "08:00"이 남은 시간(분)으로 읽히지 않게 한다.
+  assert.notEqual(logic.formatClock12(0), '08:00');
+  assert.notEqual(logic.formatClock12(420), '15:00');
+});
+
+test('D1 tutorial day structure: 3 cargos, one lesson each, chip + edit unlocks', () => {
+  const d1 = runtime.DAYS_DATA[1];
+  assert.equal(d1.cargos.length, 3);
+  assert.equal(d1.queueCount, 3);
+  // D1 국장 첫마디에 시계 읽는 법이 있다 — 시계는 현재 시각이지 남은 시간이 아니다.
+  assert(d1.tutorialNote.includes('현재 시각'), 'D1 tutorial note should explain the clock shows current time');
+  assert(d1.tutorialNote.includes('오전 8시') && d1.tutorialNote.includes('오후 3시'), 'D1 tutorial note should name start/end in 12-hour form');
+  const [c1, c2, c3] = d1.cargos;
+  assert.equal(c1.tutorialStep, 1);
+  assert.equal(c2.tutorialStep, 2);
+  assert.equal(c3.tutorialStep, 3);
+  // 1번 화물: 칩 수업 — 「사랑」 연습 칩, 의심 단어 1개(자유롭다 R01)
+  assert.deepEqual(c1.tutorialChips, ['사랑']);
+  assert.equal(c1.tutorialMeter, true);
+  assert.equal(c1.violations.length, 1);
+  assert.equal(c1.violations[0].rule, 'R01');
+  // 2번 화물: 경계선 수업 — 위반 0건, 「비상」은 경계선 아래
+  assert.equal(c2.violations.length, 0);
+  const sim2 = LEX.trueSim('비상', '자유');
+  assert(sim2.v < 70, '비상 should be below the L70 boundary: ' + JSON.stringify(sim2));
+  // 3번 화물: 도장 선택 수업 — 수정 가능, 압수/수정 모두 허용 (D12 『자유의 끝』 이야기 고리 유지)
+  assert.equal(c3.id, 'D1-4');
+  assert.equal(c3.tutorialEdit, true);
+  assert.deepEqual(c3.verdict.accept, ['DENY', 'EDIT']);
+  assert.equal(c3.violations.length, 1);
+  assert.equal(c3.violations[0].lemma, '자유');
+  assert.equal(c3.violations[0].uneditable, undefined);
+});
+
+test('D1 tutorial unlock gating: linguist mode and meter', () => {
+  runtime.state = createFreshState(1);
+  runtime.state.settings.linguist = true;
+  assert.equal(logic.isLinguistActive(), false, 'Linguist mode must stay off on D1 even when enabled in settings');
+  assert.equal(logic.isMeterUnlocked(), false, 'Training meter is locked before the first cargo arrives');
+  runtime.state.currentCargo = runtime.DAYS_DATA[1].cargos[0];
+  assert.equal(logic.isMeterUnlocked(), true, 'Training meter unlocks once the first cargo is on the desk');
+  runtime.state = createFreshState(2);
+  runtime.state.settings.linguist = true;
+  assert.equal(logic.isLinguistActive(), false, 'Linguist mode must stay off on D2');
+  assert.equal(logic.isMeterUnlocked(), true, 'Meter is formally issued on D2');
+  runtime.state = createFreshState(3);
+  runtime.state.settings.linguist = true;
+  assert.equal(logic.isLinguistActive(), true, 'Linguist mode activates from D3');
+  runtime.state.settings.linguist = false;
+  assert.equal(logic.isLinguistActive(), false, 'Linguist mode off when the setting is off');
+});
+
+test('Meter chips include tutorial practice chips on D1 lesson 1', () => {
+  runtime.state = createFreshState(1);
+  const terms1 = logic.getMeterChipTerms(runtime.DAYS_DATA[1].cargos[0]);
+  assert(terms1.includes('자유'), '자유 chip should be present on D1');
+  assert(terms1.includes('사랑'), '사랑 practice chip should be present on D1 lesson 1');
+  const terms2 = logic.getMeterChipTerms(runtime.DAYS_DATA[1].cargos[1]);
+  assert(!terms2.includes('사랑'), '사랑 chip should not leak into lesson 2');
+  runtime.state = createFreshState(3);
+  const terms3 = logic.getMeterChipTerms(runtime.DAYS_DATA[3].cargos[0]);
+  assert(terms3.includes('사랑'), '사랑 activates from D3 in normal play');
+});
+
+test('Two-layer measurement metadata: controlled / registry / estimated', () => {
+  runtime.state = createFreshState(1);
+  runtime.state.currentCargo = runtime.DAYS_DATA[1].cargos[0];
+  const ctrl = logic.getMeasuredValue('자유롭다', '자유', 'fast');
+  assert.equal(ctrl.isControlled, true, '자유롭다 is a controlled term itself');
+  assert.equal(ctrl.estimated, false, 'Controlled term measurement is real, not estimated');
+  const unknown = logic.getMeasuredValue('뭉게구름', '자유', 'fast');
+  assert.equal(unknown.inRegistry, false, '뭉게구름 is not in the standard lexicon');
+  assert.equal(unknown.estimated, true, 'Unregistered word measurement is an estimate');
+  assert.equal(unknown.isControlled, false);
+  const known = logic.getMeasuredValue('바람', '자유', 'fast');
+  assert.equal(known.inRegistry, true, '바람 is in the standard lexicon');
+  assert.equal(known.estimated, false, 'Registered word measurement is real');
+  // computeODetail estimated flag
+  const detReal = logic.computeODetail('자유', '해방', '자유', 1, 'before');
+  assert.equal(detReal.O, 78);
+  assert.equal(detReal.estimated, false);
+  const detEst = logic.computeODetail('자유', '뭉게구름', '자유', 1, 'before');
+  assert.equal(detEst.estimated, true, 'Fallback preservation rate is an estimate');
+  const prev = logic.getPreservationPreview('자유', '뭉게구름', '자유', 70, 1, 'before');
+  assert.equal(prev.estimated, true);
+  // 열린 어휘 설계: 대장에 없는 잘 만든 낱말도 수정어로 받아들인다 — 거절이 아니라 추정치로 표시된다.
+  assert.equal(logic.isValidOpenKoreanWord('뭉게구름'), true, 'Unregistered but well-formed words are accepted as edit replacements');
+});
+
+test('D2/D28 notice wording fixes', () => {
+  const d2 = runtime.DAYS_DATA[2];
+  assert(d2.noticeItems[1].includes('정식 운용'), 'D2 notice should say 정식 운용, not 지급');
+  assert(d2.noticeItems[1].includes('10분') && d2.noticeItems[1].includes('20분'), 'D2 notice costs must match config (fast 10 / fine 20)');
+  assert(!d2.noticeItems[1].includes('15분') && !d2.noticeItems[1].includes('30분'), 'D2 notice must not keep the stale 15/30 costs');
+  assert(d2.tutorialNote.includes('정식 지급'), 'D2 tutorial note should frame the meter as formally issued');
+  const d28 = runtime.DAYS_DATA[28];
+  assert(d28.tutorialNote.includes('손글씨·제3구역'), 'D28 note must scope the measurement duty to handwritten / Zone 3');
+  assert(!d28.tutorialNote.includes('모든 화물'), 'D28 note must not contradict R15 with "모든 화물"');
 });
 
 console.log(`\nALL ${passed} TESTS PASSED!`);

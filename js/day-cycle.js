@@ -25,6 +25,7 @@ import {
   escapeHtml,
   getShiftMaxMins,
   formatClock,
+  formatClock12,
   getActiveTermsList,
   evalWhen,
   renderTemplate,
@@ -252,7 +253,7 @@ export function startDayMorning(dayNum) {
   $('notice-body').innerHTML =
     (dObj.noticeItems || []).map(it => '<div class="notice-section">' + escapeHtml(it) + '</div>').join('') +
     (dObj.noticeExamples ? '<div class="notice-example">' + escapeHtml(dObj.noticeExamples) + '</div>' : '') +
-    '<div style="font-size:0.84rem;color:#534D42;margin-top:8px;">오늘 대기열: ' + dObj.cargos.length + '건 · 근무 시간: 08:00 ~ ' + formatClock(getShiftMaxMins(dayNum)) + '</div>';
+    '<div style="font-size:0.84rem;color:#534D42;margin-top:8px;">오늘 대기열: ' + dObj.cargos.length + '건 · 근무 시간: 오전 8:00 ~ ' + formatClock12(getShiftMaxMins(dayNum)) + ' (위쪽 시계는 현재 시각입니다. 남은 시간이 아닙니다.)</div>';
 
   $('notice-seoyeon').style.display = arrivedNotes.length > 0 ? 'block' : 'none';
   if (arrivedNotes.length > 0) {
@@ -393,10 +394,12 @@ export function openSettlement() {
   // 보완 5: 성실 수당에도 최소 처리율(50%) 이중 잠금
   const diligence = (s.rating >= GAME_CONFIG.DILIGENCE_RATING_MIN && processedRatio >= GAME_CONFIG.DILIGENCE_MIN_RATIO)
     ? GAME_CONFIG.DILIGENCE_BONUS : 0;
-  const income = Math.max(0, basePay + procPay + s.dayBonus + allCorrectBonus + diligence + resBonus - s.dayFines);
+  // D1 튜토리얼 날 수당 — 화물 4건→3건으로 줄어도 D1 수입(₵30)이 그대로 유지된다.
+  const tutorialStipend = s.day === 1 ? GAME_CONFIG.TUTORIAL_STIPEND : 0;
+  const income = Math.max(0, basePay + procPay + tutorialStipend + s.dayBonus + allCorrectBonus + diligence + resBonus - s.dayFines);
   s._settleIncome = income;
   // D30 최종 정산 표시용으로 당일 수입 내역을 저장해 둔다.
-  s._settleLines = { basePay, procPay, normalProcessed, redactProcessed, dayBonus: s.dayBonus, allCorrectBonus, diligence, resBonus, dayFines: s.dayFines };
+  s._settleLines = { basePay, procPay, tutorialStipend, normalProcessed, redactProcessed, dayBonus: s.dayBonus, allCorrectBonus, diligence, resBonus, dayFines: s.dayFines };
 
   const costs = calculateDailyCosts(s.day, s.seoyeonHealth, s.medExempt, s.coldMedDue);
   let rem = s.credits + income;
@@ -416,6 +419,7 @@ export function openSettlement() {
   $('settle-lines').innerHTML =
     '<div class="settle-line"><span>기본 일당</span><span>₵' + basePay + '</span></div>'
     + '<div class="settle-line"><span>처리 수당 (일반 ' + normalProcessed + '건 × ₵' + GAME_CONFIG.PROC_PAY_NORMAL + (redactProcessed > 0 ? (' · 먹칠 ' + redactProcessed + '건 × ₵' + GAME_CONFIG.PROC_PAY_REDACT) : '') + ')</span><span>₵' + procPay + '</span></div>'
+    + (tutorialStipend > 0 ? '<div class="settle-line"><span>튜토리얼 수당 (첫 출근 훈련)</span><span>+₵' + tutorialStipend + '</span></div>' : '')
     + (s.dayBonus > 0 ? '<div class="settle-line"><span>수정·급행·대조 보너스</span><span>+₵' + s.dayBonus + '</span></div>' : '')
     + (allCorrectBonus > 0 ? '<div class="settle-line"><span>무결점 전원 일치 보너스 (평정 +1)</span><span>+₵' + allCorrectBonus + '</span></div>' : '')
     + (streakRecovery > 0 ? '<div class="settle-line"><span>연속 무경고 회복 (' + s.consecutivePerfectDays + '일 연속' + (streakSRelief > 0 ? (' · 의심 -' + streakSRelief) : '') + ')</span><span>평정 +' + streakRecovery + '</span></div>' : '')

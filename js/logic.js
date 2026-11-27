@@ -25,6 +25,17 @@ export function formatClock(mins) {
   return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
 }
 
+// 12시간제 시계 표시 — "08:00"이 남은 시간(분)으로 오해되지 않게 오전/오후를 붙인다.
+// 게임 시각은 08:00~18:00 범위라 오전은 8~11시, 오후는 12~18시다.
+export function formatClock12(mins) {
+  const total = 8 * 60 + Math.floor(mins);
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  const period = h < 12 ? '오전' : '오후';
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return period + ' ' + h12 + ':' + String(m).padStart(2, '0');
+}
+
 export function parseRevisionMins(dayObj) {
   if (!dayObj || !dayObj.revision) return null;
   const atStr = dayObj.revision.at || REVISION_FALLBACK_TIME[dayObj.day];
@@ -52,6 +63,27 @@ export function isMeasureRequired(cargo) {
 
 export function getActiveTermsList() {
   return runtime.LEX.activeTerms(runtime.state.day, currentPhase());
+}
+
+// 언어학자 모드는 D3부터 적용된다 (D1·D2는 설정해도 효과가 없다 — 해금 전까지는 시간 무제한·할당제가 열리지 않는다).
+export function isLinguistActive() {
+  const s = runtime.state;
+  return !!(s.settings && s.settings.linguist) && s.day >= GAME_CONFIG.TUTORIAL_UNLOCK_DAY;
+}
+
+// 측정기 사용 가능 여부 — D1 튜토리얼 날은 훈련용 측정기(첫 화물이 책상에 오른 뒤부터), D2부터는 정식 지급.
+export function isMeterUnlocked() {
+  const s = runtime.state;
+  if (s.day >= 2) return true;
+  return s.day === 1 && !!s.currentCargo;
+}
+
+// 측정기 칩 목록 — 활성 통제어 + 튜토리얼 화물이 지정한 연습용 칩(D1 1번 화물의 「사랑」).
+export function getMeterChipTerms(cargo) {
+  const terms = getActiveTermsList();
+  const extra = (cargo && Array.isArray(cargo.tutorialChips)) ? cargo.tutorialChips : [];
+  for (const t of extra) if (!terms.includes(t)) terms.push(t);
+  return terms;
 }
 
 export function getFamilyStatusLabel() {
@@ -251,24 +283,28 @@ export function isValidOpenKoreanWord(raw) {
   return runtime.LOCALE ? runtime.LOCALE.isValidWord(raw) : runtime.LEX.LEXICON.has(runtime.LEX.lemmaOf(raw));
 }
 
-export function computeO(origLemma, vLemma, targetKey, day, phase) {
+export function computeODetail(origLemma, vLemma, targetKey, day, phase) {
   const { LEX, LOCALE } = runtime;
-  if (origLemma === vLemma) return 100;
-  if (LEX.PAIR_O[origLemma] && LEX.PAIR_O[origLemma][vLemma] !== undefined) return LEX.PAIR_O[origLemma][vLemma];
+  if (origLemma === vLemma) return { O: 100, estimated: false };
+  if (LEX.PAIR_O[origLemma] && LEX.PAIR_O[origLemma][vLemma] !== undefined) return { O: LEX.PAIR_O[origLemma][vLemma], estimated: false };
   const normV = normalizeUserKorean(vLemma);
-  if (LEX.PAIR_O[origLemma] && LEX.PAIR_O[origLemma][normV] !== undefined) return LEX.PAIR_O[origLemma][normV];
+  if (LEX.PAIR_O[origLemma] && LEX.PAIR_O[origLemma][normV] !== undefined) return { O: LEX.PAIR_O[origLemma][normV], estimated: false };
   if (LOCALE) {
     const synO = LOCALE.lookupOpenSynO(origLemma, targetKey, vLemma);
-    if (synO !== null) return synO;
+    if (synO !== null) return { O: synO, estimated: false };
   }
   if (origLemma === targetKey || (targetKey === '감정어' && LEX.emotionMembers(day, phase).includes(origLemma))) {
     const sv = LEX.trueSim(normV, targetKey).v;
-    if (sv > 25) return sv;
+    if (sv > 25) return { O: sv, estimated: LEX.trueSim(normV, targetKey).src === 'fallback' };
   }
   const fw = LEX.trueSim(origLemma, targetKey).v;
   const fv = LEX.trueSim(normV, targetKey).v;
   const base = Math.round((fw + fv) * 0.48);
-  return Math.max(36, Math.min(72, base));
+  return { O: Math.max(36, Math.min(72, base)), estimated: true };
+}
+
+export function computeO(origLemma, vLemma, targetKey, day, phase) {
+  return computeODetail(origLemma, vLemma, targetKey, day, phase).O;
 }
 
 export function getDriftPenalty(lemma) {
@@ -279,7 +315,16 @@ export function getDriftPenalty(lemma) {
 export function getMeasuredValue(wordRaw, targetKey, mode) {
   const { LEX, LOCALE, state } = runtime;
   const lemma = LEX.lemmaOf(wordRaw);
-  let trueVal = LEX.trueSim(lemma, targetKey).v;
+  const ts = LEX.trueSim(lemma, targetKey);
+  let trueVal = ts.v;
+  // (5.4) 두 층 구분용 메타 — estimated: 측정 표에 없는 낱말이라 잠정값으로 처리됨
+  // isControlled: 통제 어휘 그 자체(세계관 층), inRegistry: 표준 대장에 있는 말인지
+  let estimated = ts.src === 'fallback';
+  const isControlled = lemma === targetKey
+    || (LEX.TERMS[targetKey] && LEX.TERMS[targetKey].members && LEX.TERMS[targetKey].members.includes(lemma))
+    || LEX.COMPOUND[lemma] === targetKey
+    || (targetKey === '감정어' && LEX.emotionMembers(state.day, currentPhase()).includes(lemma));
+  const inRegistry = !!(LEX.LEXICON && LEX.LEXICON.has(lemma));
   const c = state.currentCargo;
   let senseNote = '';
   let isSafeSense = false;
@@ -289,6 +334,7 @@ export function getMeasuredValue(wordRaw, targetKey, mode) {
     if (senseRes && senseRes.safe) {
       isSafeSense = true;
       trueVal = 18 + (LEX.hashStr(lemma + '|safe|' + targetKey) % 16);
+      estimated = false; // 허용 뜻이 확인된 문장 모드 측정값은 실측이다
       senseNote = ' (문장 모드: 허용 뜻 "' + senseRes.sense + '")';
     } else if (senseRes && !senseRes.safe && senseRes.sense) {
       senseNote = ' (문장 모드: 금지 뜻 "' + senseRes.sense + '")';
@@ -319,7 +365,7 @@ export function getMeasuredValue(wordRaw, targetKey, mode) {
   }
 
   return {
-    displayed, err, trueVal, lemma, senseNote,
+    displayed, err, trueVal, lemma, senseNote, estimated, isControlled, inRegistry,
     min: Math.max(0, displayed - err),
     max: Math.min(100, displayed + err)
   };
@@ -352,11 +398,11 @@ export function findBestTargetForWord(wordRaw, cargo) {
 
 export function getPreservationPreview(origLemma, rawInput, targetKey, oStar, day, phase) {
   const vLemma = normalizeUserKorean(rawInput);
-  const O = computeO(origLemma, vLemma, targetKey, day, phase);
+  const { O, estimated } = computeODetail(origLemma, vLemma, targetKey, day, phase);
   const P = Math.min(100, Math.round((100 * O) / (oStar || 70)));
-  if (P >= 80) return { P, tier: '높음 ★★★ (은유 복원·최대 보너스 구간)' };
-  if (P >= 55) return { P, tier: '보통 ★★ (뜻 전달 양호)' };
-  return { P, tier: '낮음 ★ (원뜻과 거리가 있음)' };
+  if (P >= 80) return { P, tier: '높음 ★★★ (은유 복원·최대 보너스 구간)', estimated };
+  if (P >= 55) return { P, tier: '보통 ★★ (뜻 전달 양호)', estimated };
+  return { P, tier: '낮음 ★ (원뜻과 거리가 있음)', estimated };
 }
 
 export function resolveCargoVariants(rawCargo) {

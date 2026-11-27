@@ -7,10 +7,13 @@ import {
   escapeHtml,
   getShiftMaxMins,
   formatClock,
+  formatClock12,
   currentPhase,
   cargoPhase,
   isD30FinalCargo,
   getActiveTermsList,
+  getMeterChipTerms,
+  isLinguistActive,
   getFamilyStatusLabel
 } from './logic.js';
 
@@ -83,12 +86,13 @@ export function updateClockUI() {
   const s = runtime.state;
   const maxM = getShiftMaxMins(s.day);
   const remMins = Math.max(0, Math.ceil(maxM - s.clockMins));
-  const warn = !s.settings.linguist && remMins > 0 && remMins <= 60;
+  const warn = !isLinguistActive() && remMins > 0 && remMins <= 60;
   const clockEl = $('hud-clock');
-  clockEl.textContent = warn ? (formatClock(s.clockMins) + ' (-' + remMins + '분)') : formatClock(s.clockMins);
+  // 시계는 현재 시각(오전/오후)이며, 마감 임박 시 남은 시간임을 라벨로 밝힌다 ("(-N분)"은 분으로 오해된다).
+  clockEl.textContent = warn ? (formatClock12(s.clockMins) + ' (마감 ' + remMins + '분 전)') : formatClock12(s.clockMins);
   clockEl.classList.toggle('clock-warn', warn);
   const pct = Math.min(100, (s.clockMins / maxM) * 100);
-  if ($('hud-clock-end')) $('hud-clock-end').textContent = formatClock(maxM);
+  if ($('hud-clock-end')) $('hud-clock-end').textContent = '마감 ' + formatClock12(maxM);
   const fill = $('hud-clock-fill');
   fill.style.width = pct + '%';
   fill.classList.toggle('over', pct >= 100 || warn);
@@ -106,7 +110,7 @@ export function updateWorkHUD() {
   $('hud-warn-pill').style.display = s.dayWarnings > 0 ? 'inline-flex' : 'none';
   $('hud-warns').textContent = s.dayWarnings;
   if ($('hud-quota-pill')) {
-    $('hud-quota-pill').style.display = s.settings.linguist ? 'inline-flex' : 'none';
+    $('hud-quota-pill').style.display = isLinguistActive() ? 'inline-flex' : 'none';
     $('hud-quota').textContent = Math.max(0, s.dayMeasureQuota - s.dayMeasureUsed) + '/' + s.dayMeasureQuota;
   }
   $('rack-edit-quota').textContent = s.day >= 23 ? ('수정 잔여 ' + Math.max(0, 4 - s.dayEditsUsed) + '/4') : '';
@@ -129,7 +133,7 @@ export function updateToolButtons() {
 
   const d = runtime.DAYS_DATA[s.day];
   const hasMore = s.queueIndex < d.cargos.length;
-  const canCall = !s.currentCargo && hasMore && (s.settings.linguist || s.clockMins < getShiftMaxMins(s.day));
+  const canCall = !s.currentCargo && hasMore && (isLinguistActive() || s.clockMins < getShiftMaxMins(s.day));
   $('btn-bell').disabled = !canCall;
   $('btn-bell').classList.toggle('pulse', canCall);
   $('btn-end-shift-early').style.display = (!s.currentCargo && !hasMore) ? 'inline-block' : 'none';
@@ -137,7 +141,7 @@ export function updateToolButtons() {
 
 export function populateMeterTargets(recommendedTerm = null) {
   const { LEX, state: s } = runtime;
-  const terms = getActiveTermsList();
+  const terms = getMeterChipTerms(s.currentCargo);
   const useAutoOption = terms.length >= 2;
   if (s.meterTarget !== 'AUTO' && !terms.includes(s.meterTarget)) {
     s.meterTarget = useAutoOption ? 'AUTO' : (terms[0] || '자유');
@@ -381,7 +385,9 @@ export function renderRulebook() {
   if (tab === 'terms') {
     box.innerHTML = renderRulebookTermsTab(ph);
   } else if (tab === 'rules') {
-    box.innerHTML = RULES_META
+    // 고정 안내 카드 — 첫 방문객 인사말에 덮이지 않도록 규칙집 첫 페이지에 둔다.
+    const guideCard = '<div class="rb-card" style="border-color:var(--accent);"><div class="rb-card-head"><span>📌 첫 출근 안내</span><span class="rb-sub">고정</span></div><div class="rb-sub">심사 절차는 세 단계입니다. ① 본문에서 의심 낱말을 클릭해 탐침에 올립니다. ② 칩을 골라 측정기로 유사도를 재고 경계선과 비교합니다. ③ 통과·압수·수정 도장 중 하나를 찍습니다. (측정기는 D2부터 정식 지급, 수정 도장은 D3부터. D1은 국장이 빌려준 훈련용 측정기로 연습합니다.)</div></div>';
+    box.innerHTML = guideCard + RULES_META
       .filter(r => ENGINE.RULE_DAY[r.id] <= s.day)
       .map(r => '<div class="rb-card"><div class="rb-card-head"><span>' + r.id + ' · ' + r.name + '</span><span class="rb-sub">D' + ENGINE.RULE_DAY[r.id] + '~</span></div><div class="rb-sub">' + escapeHtml(r.desc(s.day, ph)) + '</div></div>')
       .join('');

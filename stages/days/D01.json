@@ -9,7 +9,7 @@
   "3. 인쇄물의 명시 금지어는 게이트 스캐너가 즉시 적발한다."
  ],
  "noticeExamples": "공개 예시 (NULL 원장): 자유롭다(위반 · R01) / 자유로이(위반 · R01)",
- "tutorialNote": "첫 출근입니다. 두 번째 화물을 내보낼 때까지 근무 시계는 흐르지 않습니다. 본문을 읽고 통과 또는 압수 도장을 찍으세요.",
+ "tutorialNote": "첫 출근 튜토리얼 날입니다. 오늘 화물은 3건만 들어옵니다. 국장이 훈련용 측정기를 빌려줬습니다. 두 번째 화물을 내보낼 때까지 근무 시계는 흐르지 않습니다. 본문을 읽고 통과·압수·수정 도장을 찍으세요. 위쪽 시계는 남은 시간이 아니라 현재 시각이다. 오전 8시 출근, 오후 3시 퇴근.",
  "eveningIntro": [
   {
    "s": "윤희",
@@ -28,7 +28,7 @@
  "title": "첫 출근",
  "examples": [],
  "storyNote": "국장이 공문을 건네기 전 인사 서류를 한참 본다: \"…자네가 7창구군. 앉게.\" (D10 반전 단서)",
- "queueCount": 4,
+ "queueCount": 3,
  "cargos": [
   {
    "id": "D1-1",
@@ -39,7 +39,7 @@
    "format": "printed",
    "origin": "제1구역",
    "pages": 1,
-   "body": "제주에 와 보니 바람이 자유롭다. 다음엔 같이 오자.",
+   "body": "제주에 와 보니 바람이 자유롭다. 사랑하는 사람과 다음엔 같이 오자.",
    "violations": [
     {
      "word": "자유롭다",
@@ -51,7 +51,12 @@
      "lemma": "자유"
     }
    ],
-   "tutorialTip": "국장 문태오: \"오른쪽 규칙집의 [통제어]·[규칙] 탭을 확인하게.\" — 도장은 1(통과)·2(압수)입니다. 압수 도장을 찍으면 사유를 고르는 창이 열립니다.",
+   "tutorialTip": "국장 문태오: \"의심 낱말 「사랑하는」을 클릭해 탐침에 올리고, AUTO 칩으로 재본 뒤 「사랑」 칩으로도 재봐. 칩이 다르면 값이 달라진다.\" — 오늘은 훈련용 측정기다.",
+   "tutorialStep": 1,
+   "tutorialMeter": true,
+   "tutorialChips": [
+    "사랑"
+   ],
    "reactPass": "감사합니다. 엽서 잘 부탁드려요.",
    "reactDeny": "아니, 엽서 한 장인데요?",
    "expect": [
@@ -111,23 +116,38 @@
   },
   {
    "id": "D1-2",
-   "visitor": "제2구역 공장 노동자",
+   "visitor": "제2구역 청년",
    "charId": "citizen",
-   "greeting": "어머니께 보내는 편지입니다.",
+   "greeting": "형한테 보내는 편지예요.",
    "kind": "개인 서신",
    "format": "hand",
    "origin": "제2구역",
    "pages": 1,
-   "body": "어머니, 공장 교대 시간이 바뀌어서 이번 주엔 못 갑니다. 감기 조심하시고 밥 꼭 챙겨 드세요.",
+   "body": "형, 비상 연락망이 바뀌었대. 새 번호는 집 전화 옆 메모에 적어 둘게. 이번 주말에 시간 되면 들러. — 동생",
    "violations": [],
-   "tutorialTip": "도장을 찍으면 화물이 창구 밖으로 나갑니다. 이 화물을 내보낸 다음부터 근무 시계가 흐릅니다.",
-   "reactPass": "고맙습니다. 그럼 이만.",
-   "reactDeny": "이걸 막으시면 곤란한데요.",
+   "tutorialTip": "「비상」처럼 경계선 근처 낱말은 빠른 측정만으로 갈리지 않는다. 정밀 측정으로 구간을 좁혀 경계선과 비교하게.",
+   "tutorialStep": 2,
+   "tutorialMeter": true,
+   "reactPass": "고맙습니다. 형한테 잘 전해주세요.",
+   "reactDeny": "어? 이게 왜 안 된다는 거죠?",
    "expect": [],
    "role": "practice",
    "tutorial": true,
    "editable": false,
-   "sims": [],
+   "sims": [
+    {
+     "word": "비상",
+     "lemma": "비상",
+     "target": "자유",
+     "value": 66
+    },
+    {
+     "word": "새",
+     "lemma": "새",
+     "target": "자유",
+     "value": 45
+    }
+   ],
    "verdict": {
     "legal": true,
     "accept": [
@@ -138,63 +158,12 @@
    "auditP": 0,
    "react": {
     "PASS": [
-     "고맙습니다. 그럼 이만.",
+     "고맙습니다. 형한테 잘 전해주세요.",
      "네, 수고 많으십니다."
     ],
     "DENY": [
-     "이걸 막으시면 곤란한데요.",
+     "어? 이게 왜 안 된다는 거죠?",
      "그렇군요. 알겠습니다."
-    ]
-   },
-   "stats": {
-    "PASS": {
-     "credit": 5
-    },
-    "DENY": {
-     "complaintP": 0.5
-    },
-    "EDIT_WRONG": {
-     "complaintP": 0.5,
-     "editUsed": 1
-    }
-   }
-  },
-  {
-   "id": "D1-3",
-   "visitor": "제1구역 반장",
-   "charId": "citizen",
-   "greeting": "자치회 공지문입니다. 빠르게 봐주세요.",
-   "kind": "안내문",
-   "format": "printed",
-   "origin": "제1구역",
-   "pages": 1,
-   "body": "제1구역 주민 자치회 공지: 이번 토요일 오전 9시 배수로 청소가 있습니다. 장갑 지참 바랍니다.",
-   "violations": [],
-   "reactPass": "다행이네요. 감사합니다.",
-   "reactDeny": "네? 이게 왜 안 된다는 거죠?",
-   "expect": [],
-   "role": "build",
-   "editable": false,
-   "sims": [],
-   "verdict": {
-    "legal": true,
-    "accept": [
-     "PASS"
-    ],
-    "rules": []
-   },
-   "auditP": 0,
-   "react": {
-    "PASS": [
-     "다행이네요. 감사합니다.",
-     "수고하세요, 심사관님."
-    ],
-    "DENY": [
-     "네? 이게 왜 안 된다는 거죠?",
-     "…알겠습니다. 규칙이라면요."
-    ],
-    "SCAN": [
-     "어, 경보가 울리네요? …인쇄물이라 그런가요."
     ]
    },
    "stats": {
@@ -227,12 +196,14 @@
      "target": "자유",
      "grade": 1,
      "at": 7,
-     "uneditable": true,
      "lemma": "자유"
     }
    ],
    "reactPass": "감사합니다.",
    "reactDeny": "압수라니요, 다시 한 번 봐 주세요.",
+   "tutorialStep": 3,
+   "tutorialMeter": true,
+   "tutorialEdit": true,
    "expect": [
     "R01"
    ],
@@ -246,7 +217,7 @@
      }
     }
    },
-   "editable": false,
+   "editable": true,
    "sims": [
     {
      "word": "자유의",
@@ -258,7 +229,8 @@
    "verdict": {
     "legal": false,
     "accept": [
-     "DENY"
+     "DENY",
+     "EDIT"
     ],
     "rules": [
      "R01"
@@ -273,6 +245,15 @@
     "DENY": [
      "압수라니요, 다시 한 번 봐 주세요.",
      "어쩔 수 없죠. 다시 써 오겠습니다."
+    ],
+    "EDIT_HI": [
+     "고쳐 주셔서 감사합니다. 뜻은 그대로네요."
+    ],
+    "EDIT_MID": [
+     "고쳐 주셨군요. 읽을 만은 하네요."
+    ],
+    "EDIT_LO": [
+     "…뜻이 좀 달라진 것 같은데요."
     ]
    },
    "stats": {

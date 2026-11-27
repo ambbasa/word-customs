@@ -618,6 +618,9 @@ button:disabled { opacity: 0.42; cursor: not-allowed; }
 .verdict-msg { font-size: 0.75rem; color: var(--ink); }
 .verdict-msg.over { color: var(--stamp-deny); }
 .verdict-msg.under { color: var(--stamp-pass); }
+/* (5.4) 두 층 문구 — 세계관 층(빨강, NULL 말투)과 시스템 층(회색)을 색으로 분리한다. */
+.layer-world { color: #E04F3E; font-weight: 700; }
+.layer-sys { color: #7A8D9E; }
 
 .null-slit {
   background: #141A18; border: 2px solid var(--ink);

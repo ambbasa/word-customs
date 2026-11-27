@@ -102,10 +102,10 @@
   <header class="top-bar">
     <div class="top-group">
       <span id="hud-day" class="plate">11월 1일 (D1)</span>
-      <div class="clock-wrap">
-        <span id="hud-clock">08:00</span>
+      <div class="clock-wrap" title="현재 시각과 퇴근 마감 시각입니다. 남은 시간이 아닙니다.">
+        <span id="hud-clock" title="현재 시각">오전 8:00</span>
         <div class="clock-bar"><div id="hud-clock-fill" class="clock-fill"></div></div>
-        <span id="hud-clock-end" class="hide-mobile" style="font-size:0.72rem;color:#4A5A68;">15:00</span>
+        <span id="hud-clock-end" class="hide-mobile" style="font-size:0.72rem;color:#4A5A68;" title="퇴근 마감 시각">마감 오후 3:00</span>
       </div>
       <span class="plate plate-warm">대기 <strong id="hud-queue">0</strong>명</span>
       <span class="plate plate-dark hide-mobile">평정 <strong id="hud-rating">60</strong></span>
@@ -422,7 +422,7 @@
         <input type="checkbox" id="opt-relaxed">
       </label>
       <label style="display:flex;justify-content:space-between;align-items:center;">
-        <span>언어학자 모드 (시간 무제한 · 측정 할당제)</span>
+        <span>언어학자 모드 (시간 무제한 · 측정 할당제, D3부터 적용)</span>
         <input type="checkbox" id="opt-linguist">
       </label>
       <label style="display:flex;justify-content:space-between;align-items:center;">

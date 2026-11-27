@@ -5,6 +5,8 @@ export const GAME_CONFIG = Object.freeze({
   STARTING_RATING: 60,
   STARTING_TRUST: 20,
   BASE_PAY: 10,
+  TUTORIAL_STIPEND: 5, // D1 튜토리얼 날 수당 — 화물 4건→3건으로 줄어도 D1 수입(₵30)이 그대로 유지된다
+  TUTORIAL_UNLOCK_DAY: 3, // 2차 시스템(언어학자 모드·NULL 심리전·포스트잇 등) 해금일 — D1·D2는 핵심 판정만
   PROC_PAY_NORMAL: 5,
   PROC_PAY_REDACT: 2,
   DILIGENCE_RATING_MIN: 80,

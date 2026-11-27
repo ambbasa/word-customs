@@ -38,7 +38,10 @@ import {
   findBestTargetForWord,
   getPreservationPreview,
   resolveCargoVariants,
-  resolveEndingDecision
+  resolveEndingDecision,
+  isLinguistActive,
+  isMeterUnlocked,
+  getMeterChipTerms
 } from './logic.js';
 import {
   $,
@@ -58,7 +61,7 @@ import { playCutscene, getD30Cutscene } from './cutscene.js';
 
 function isClockPaused() {
   const s = runtime.state;
-  if (!s.clockRunning || (s.settings && s.settings.linguist)) return true;
+  if (!s.clockRunning || isLinguistActive()) return true;
   if (isD30FinalCargo(s.currentCargo)) return true;
   if (s.paused || s.measuring || s.tipActive || s.dilemmaOpen || s.revisionOpen) return true;
   return ['modal-settings', 'modal-deny', 'modal-dict', 'modal-revision']
@@ -81,13 +84,9 @@ export function startWorkShift() {
   s.tipActive = false;
   $('desk-surface').innerHTML = '<div class="desk-empty">제7창구 심사 책상 (' + escapeHtml(d.dateLabel) + ')<br>호출 벨을 눌러 첫 화물을 받으세요.</div>';
 
-  const meterUnlocked = s.day >= 2;
-  $('meter-row').classList.toggle('locked', !meterUnlocked);
-  $('meter-locked-msg').style.display = meterUnlocked ? 'none' : 'block';
-  $('meter-controls').style.display = meterUnlocked ? 'flex' : 'none';
-  $('btn-stamp-edit').style.display = s.day >= 3 ? 'flex' : 'none';
-  $('btn-stamp-redact').style.display = s.day >= 3 ? 'flex' : 'none';
-  if ($('btn-hud-sticky')) $('btn-hud-sticky').style.display = s.day >= 2 ? 'inline-block' : 'none';
+  updateMeterVisibility();
+  updateStampButtonsVisibility();
+  if ($('btn-hud-sticky')) $('btn-hud-sticky').style.display = s.day >= GAME_CONFIG.TUTORIAL_UNLOCK_DAY ? 'inline-block' : 'none';
   if ($('btn-view-radar')) $('btn-view-radar').style.display = s.day >= 3 ? 'inline-block' : 'none';
   if (s.day <= 2) {
     $('tutorial-tip-text').textContent = s.day === 1
@@ -108,7 +107,7 @@ export function startWorkShift() {
   $('hud-rev-pill').style.display = 'none';
   $('hud-insp-pill').style.display = INSPECTOR_DAYS_SET.has(s.day) ? 'inline-flex' : 'none';
   $('hud-surge-pill').style.display = SURGE_DAYS.has(s.day) ? 'inline-flex' : 'none';
-  $('hud-quota-pill').style.display = s.settings.linguist ? 'inline-flex' : 'none';
+  $('hud-quota-pill').style.display = isLinguistActive() ? 'inline-flex' : 'none';
 
   const activeTermsCount = runtime.LEX.activeTerms(s.day, currentPhase()).length;
   if (activeTermsCount >= 2) s.meterTarget = 'AUTO';
@@ -123,27 +122,49 @@ export function startWorkShift() {
   startClockLoop();
 }
 
-// (G) D1 첫 화물 단계별 가이드 — 블로킹하지 않고 [다음]/[건너뛰기]로 건너뛸 수 있다.
-// D1에는 측정기가 잠겨 있으므로(D2 지급) 측정 단계는 안내만 하고 도장 단계로 이어진다.
-const D1_GUIDE_STEPS = [
-  '① 본문에서 의심스러운 낱말을 클릭하세요. (예: 「자유롭다」 — 공문 공개 예시에 나온 위반어입니다)',
-  '② 칩을 확인하세요. 기본값 AUTO가 가장 위험한 통제어를 자동으로 골라줍니다. (측정기는 D2부터 지급됩니다)',
-  '③ 오늘은 측정기가 없습니다. 공문 공개 예시와 규칙집 1등급 통제어를 보고 판단하세요.',
-  '④ 사유를 고르고 도장을 찍으세요. 통과 1번 · 압수 2번 키로도 찍을 수 있습니다.'
-];
+// (G) D1 튜토리얼 날 단계별 가이드 — 화물마다 가르치는 것이 하나씩이다.
+// 1번 화물: 칩 고르기 + 측정 / 2번 화물: 경계선 비교 / 3번 화물: 도장 선택(압수 vs 수정).
+// 블로킹하지 않고 [다음]/[건너뛰기]로 건너뛸 수 있다. s.tutorialStep은 현재 화물 안에서의 소단계.
+const D1_TUTORIAL_LESSONS = {
+  1: {
+    steps: [
+      '① 「사랑하는」을 클릭하세요. 탐침에 올라갑니다. (「자유롭다」도 의심 단어입니다)',
+      '② AUTO 칩으로 재보세요. 「사랑하는」은 19쯤(통과), 「자유롭다」는 100(위반)이 나옵니다.',
+      '③ 「사랑」 칩으로 바꿔 다시 재보세요. 같은 낱말도 칩이 바뀌면 값이 달라집니다 — 「사랑하는」은 100(위반)이 됩니다. (빨간 안내: 통제 어휘 그 자체라는 뜻)',
+      '④ 「자유롭다」가 위반이면 사유 R01로 압수 도장을 찍으세요. 통과 1번 · 압수 2번 키로도 찍을 수 있습니다.'
+    ],
+    highlights: [['cargo-paper'], ['meter-row'], ['meter-row'], ['btn-stamp-pass', 'btn-stamp-deny']]
+  },
+  2: {
+    steps: [
+      '① 「비상」처럼 경계선 근처 낱말은 빠른 측정만으로 갈리지 않습니다. 먼저 빠른 측정으로 구간을 보세요.',
+      '② 구간이 경계선에 걸리면 정밀 측정으로 좁혀 비교하세요. 구간 전체가 경계선 아래면 안전, 위면 위반입니다.',
+      '③ 판단이 서면 도장을 찍으세요. 통과 1번 · 압수 2번 키로도 찍을 수 있습니다.'
+    ],
+    highlights: [['cargo-paper'], ['meter-row'], ['btn-stamp-pass', 'btn-stamp-deny']]
+  },
+  3: {
+    steps: [
+      '① 이 화물에는 위반 낱말 「자유」가 있습니다. 압수(2번)할 수도, 수정 도장(3번)으로 고쳐 통과시킬 수도 있습니다.',
+      '② 수정하려면 수정 도장을 누르고 본문에서 「자유」를 클릭하세요. 교체 후보는 \'미리 측정\'으로 먼저 확인하세요. (예: 「여유」·「자율」)',
+      '③ 틀린 수정은 즉시 경고+자동압수입니다. 금지선 아래에서 원래 뜻을 잘 살린 대체어를 고르세요.'
+    ],
+    highlights: [['cargo-paper'], ['btn-stamp-edit'], ['btn-stamp-edit']]
+  }
+};
 
-const D1_GUIDE_HIGHLIGHTS = [
-  ['cargo-paper'],
-  ['meter-row'],
-  ['rulebook-col'],
-  ['btn-stamp-pass', 'btn-stamp-deny']
-];
+function currentD1Lesson() {
+  const s = runtime.state;
+  const c = s.currentCargo;
+  return (s.day === 1 && c && c.tutorialStep) ? D1_TUTORIAL_LESSONS[c.tutorialStep] : null;
+}
 
 function updateD1GuideHighlight() {
   document.querySelectorAll('.guide-highlight').forEach(el => el.classList.remove('guide-highlight'));
   const s = runtime.state;
-  if (!s.tutorialStep || s.tutorialStep < 1 || s.tutorialStep > D1_GUIDE_STEPS.length) return;
-  (D1_GUIDE_HIGHLIGHTS[s.tutorialStep - 1] || []).forEach(id => {
+  const lesson = currentD1Lesson();
+  if (!lesson || !s.tutorialStep || s.tutorialStep < 1 || s.tutorialStep > lesson.steps.length) return;
+  (lesson.highlights[s.tutorialStep - 1] || []).forEach(id => {
     const el = $(id);
     if (el) el.classList.add('guide-highlight');
   });
@@ -154,19 +175,47 @@ export function showD1Guide() {
   const box = $('d1-guide');
   const txt = $('d1-guide-text');
   if (!box || !txt) return;
-  if (!s.tutorialStep || s.tutorialStep < 1 || s.tutorialStep > D1_GUIDE_STEPS.length) { box.style.display = 'none'; return; }
-  txt.textContent = D1_GUIDE_STEPS[s.tutorialStep - 1] + ' (' + s.tutorialStep + '/' + D1_GUIDE_STEPS.length + ')';
-  $('btn-d1-guide-next').textContent = s.tutorialStep >= D1_GUIDE_STEPS.length ? '완료' : '다음';
+  const lesson = currentD1Lesson();
+  if (!lesson || !s.tutorialStep || s.tutorialStep < 1 || s.tutorialStep > lesson.steps.length) { box.style.display = 'none'; return; }
+  txt.textContent = lesson.steps[s.tutorialStep - 1] + ' (' + s.tutorialStep + '/' + lesson.steps.length + ')';
+  $('btn-d1-guide-next').textContent = (s.tutorialStep >= lesson.steps.length && s.currentCargo && s.currentCargo.tutorialStep === 3) ? '완료' : '다음';
   box.style.display = 'flex';
   updateD1GuideHighlight();
 }
 
 export function advanceD1Guide() {
   const s = runtime.state;
-  if (!s.tutorialStep) return;
-  if (s.tutorialStep >= D1_GUIDE_STEPS.length) { finishD1Guide(); return; }
+  const lesson = currentD1Lesson();
+  if (!lesson || !s.tutorialStep) return;
+  if (s.tutorialStep >= lesson.steps.length) {
+    // 마지막 화물의 마지막 단계에서만 튜토리얼 완료 처리 — 앞 화물은 수업이 끝나도 다음 화물에서 다시 열린다.
+    if (s.currentCargo && s.currentCargo.tutorialStep === 3) finishD1Guide();
+    else hideD1GuideForCargo();
+    return;
+  }
   s.tutorialStep++;
   showD1Guide();
+}
+
+// 행동 기반 자동 진행 — probe(낱말 클릭) / measure(측정) / edit-on(수정 모드) / edit-done(수정 입력)
+export function advanceD1GuideOn(action, detail) {
+  const s = runtime.state;
+  if (s.tutorialDone) return;
+  const lesson = currentD1Lesson();
+  if (!lesson || !s.tutorialStep) return;
+  const ln = s.currentCargo.tutorialStep;
+  if (action === 'probe') {
+    if ((ln === 1 || ln === 2) && s.tutorialStep === 1) { s.tutorialStep = 2; showD1Guide(); }
+  } else if (action === 'measure') {
+    // 1번 화물: 2단계에서 첫 측정(AUTO) → 3단계(사랑 칩으로 재측정), 사랑 칩 측정에서 4단계(도장)로.
+    if (ln === 1 && s.tutorialStep === 2) { s.tutorialStep = 3; showD1Guide(); }
+    else if (ln === 1 && s.tutorialStep === 3 && s.meterTarget === '사랑') { s.tutorialStep = 4; showD1Guide(); }
+    else if (ln === 2 && detail === 'fine' && s.tutorialStep === 2) { s.tutorialStep = 3; showD1Guide(); }
+  } else if (action === 'edit-on') {
+    if (ln === 3 && s.tutorialStep === 1) { s.tutorialStep = 2; showD1Guide(); }
+  } else if (action === 'edit-done') {
+    if (ln === 3 && s.tutorialStep === 2) { s.tutorialStep = 3; showD1Guide(); }
+  }
 }
 
 export function finishD1Guide() {
@@ -176,6 +225,82 @@ export function finishD1Guide() {
   document.querySelectorAll('.guide-highlight').forEach(el => el.classList.remove('guide-highlight'));
   const box = $('d1-guide');
   if (box) box.style.display = 'none';
+}
+
+// 화물 하나가 끝나면 가이드 박스를 접는다 (다음 화물에서 해당 수업이 다시 열린다).
+export function hideD1GuideForCargo() {
+  document.querySelectorAll('.guide-highlight').forEach(el => el.classList.remove('guide-highlight'));
+  const box = $('d1-guide');
+  if (box) box.style.display = 'none';
+}
+
+// D1 튜토리얼 날 단계별 피드백 — 도장을 찍은 직후 한 줄로 바로 알려준다 (밤 정산 복기까지 기다리지 않는다).
+function showD1StepFeedback(c, action, detail) {
+  const s = runtime.state;
+  if (s.day !== 1 || !c || !c.tutorialStep) return;
+  const ln = c.tutorialStep;
+  let msg = '';
+  if (ln === 1) {
+    if (action === 'deny') {
+      msg = (detail === 'R01')
+        ? '✓ 맞았어. 「자유롭다」는 자유 그 자체라 명시 금지(R01) 위반이야. 인쇄물이라 통과시켰으면 게이트 스캐너가 바로 잡았을 거야.'
+        : '압수는 맞았어. 다만 사유는 R01(명시 금지)이야. 「자유롭다」는 자유 그 자체거든.';
+      if (!c._measured) msg += ' (측정 없이 찍었네. 의심 낱말은 재보고 판단하는 습관을 들여 봐.)';
+    } else if (action === 'pass') {
+      msg = '△ 아쉬워. 「자유롭다」는 자유와 100으로 R01 위반이야. 인쇄물이라 게이트 스캐너가 즉시 적발했어. 다음엔 측정값이 경계선을 넘으면 압수해 봐.';
+    }
+  } else if (ln === 2) {
+    if (action === 'pass') {
+      const pts = c._measuredPoints || [];
+      const usedFine = pts.some(m => m.err <= 3);
+      if (usedFine) msg = '✓ 맞았어. 「비상」은 자유와 66으로 경계선 70 아래라 적법이야. 정밀 측정으로 구간을 좁혀 확인했지.';
+      else if (pts.length > 0) msg = '✓ 맞았어. 「비상」은 자유와 66으로 경계선 70 아래라 적법이야. (이번엔 빠른 측정만으로 통과시켰네. 구간이 경계선에 걸렸으면 정밀 측정으로 확인하면 더 확실해.)';
+      else msg = '✓ 맞았어. 「비상」은 자유와 66으로 경계선 70 아래라 적법이야. (이번엔 측정 없이 통과시켰네. 경계선 근처 낱말은 재보고 판단하는 게 안전해.)';
+    } else if (action === 'deny') {
+      msg = '△ 아쉬워. 「비상」은 66으로 경계선 아래라 적법이야. 구간이 경계선에 걸리면 정밀 측정으로 좁혀 봐.';
+    }
+  } else if (ln === 3) {
+    if (action === 'edit') {
+      const P = detail && detail.P !== undefined ? detail.P : 0;
+      const v = detail && detail.v ? detail.v : '대체어';
+      msg = P >= 50
+        ? '✓ 잘했어. 「자유」를 「' + v + '」로 고쳐서 위반이 사라졌어. 보존율 ' + P + '%라 뜻도 잘 살았어.'
+        : '△ 수정은 됐지만 보존율이 ' + P + '%로 낮아. 원래 뜻을 더 잘 살리는 대체어를 골라 봐. (예: 「여유」·「자율」)';
+    } else if (action === 'deny') {
+      msg = '압수도 정답이야. 다만 수정으로 고쳤으면 보너스가 있었어. 다음엔 \'미리 측정\'으로 후보를 확인해 봐.';
+    } else if (action === 'edit-bad') {
+      msg = '⚠ 틀린 수정은 즉시 경고+자동압수야. 교체 후보는 \'미리 측정\'으로 먼저 확인하고, 금지선 아래 단어를 골라야 해.';
+    } else if (action === 'pass') {
+      msg = '△ 아쉬워. 「자유」가 그대로 있으면 R01 위반이야. 압수하거나 수정으로 고쳐야 해.';
+    }
+  }
+  if (!msg) return;
+  $('tutorial-tip-text').textContent = msg;
+  $('tutorial-tip').style.display = 'flex';
+  s.tipActive = true;
+}
+
+// 측정기 표시 — D1은 훈련용 측정기(화물이 책상에 오른 뒤부터), D2부터는 정식 지급.
+function updateMeterVisibility() {
+  const s = runtime.state;
+  const unlocked = isMeterUnlocked();
+  $('meter-row').classList.toggle('locked', !unlocked);
+  $('meter-locked-msg').style.display = unlocked ? 'none' : 'block';
+  if (!unlocked) {
+    $('meter-locked-msg').textContent = s.day === 1
+      ? '[측정기] 훈련용 측정기 — 첫 화물을 받으면 사용할 수 있습니다.'
+      : '[측정기] D2부터 지급됩니다.';
+  }
+  $('meter-controls').style.display = unlocked ? 'flex' : 'none';
+}
+
+// 도장 버튼 표시 — 수정은 D3부터, 단 D1 튜토리얼 3번 화물에서는 예외적으로 열린다. 먹칠은 D3부터.
+function updateStampButtonsVisibility() {
+  const s = runtime.state;
+  const c = s.currentCargo;
+  const editOpen = s.day >= 3 || (s.day === 1 && c && c.tutorialEdit);
+  $('btn-stamp-edit').style.display = editOpen ? 'flex' : 'none';
+  $('btn-stamp-redact').style.display = s.day >= 3 ? 'flex' : 'none';
 }
 
 function renderDeskKeepsakes() {
@@ -241,6 +366,7 @@ function startClockLoop() {
 function handleNullPsychCheck() {
   const s = runtime.state;
   const c = s.currentCargo;
+  if (s.day < GAME_CONFIG.TUTORIAL_UNLOCK_DAY) return; // NULL 심리전은 D3부터 — D1·D2는 핵심 판정만 가르친다.
   if (!c || !s.envelopeOpened || s.stamped) return;
   if ((s.clockMins - (c._openedAt || 0)) < GAME_CONFIG.NULL_HESITATE_MINS) return;
   if ((s.clockMins - s.lastNullSlitAt) < GAME_CONFIG.NULL_SLIT_COOLDOWN_MINS) return;
@@ -284,7 +410,7 @@ export function advanceClock(deltaMins) {
 
   handleNullPsychCheck();
 
-  if (!s.settings.linguist && s.clockMins >= maxM) {
+  if (!isLinguistActive() && s.clockMins >= maxM) {
     if (s.day === 30 && s.queueIndex < d.cargos.length - 1) {
       s.clockMins = maxM;
       s.clockRunning = false;
@@ -314,7 +440,7 @@ export function advanceClock(deltaMins) {
 export function spendGameMinutes(mins) {
   const s = runtime.state;
   if (s.day === 1 && s.queueIndex < 2) return;
-  if (s.settings && s.settings.linguist) return;
+  if (isLinguistActive()) return; // 언어학자 모드(D3부터)에서는 시간 무제한
   advanceClock(mins);
 }
 
@@ -401,9 +527,9 @@ export function callNextVisitor() {
   updateWorkHUD();
   updateToolButtons();
 
-  // (G) D1 첫 화물 가이드 — 첫 화물이 도착하면 바로 보여준다. (봉투를 열기 전이라
+  // (G) D1 튜토리얼 날 가이드 — 튜토리얼 화물이 도착하면 해당 수업을 바로 연다. (봉투를 열기 전이라
   // cargo-paper 하이라이트는 아직 적용되지 않고, 봉투를 열면 renderDeskCargo에서 다시 적용된다.)
-  if (s.day === 1 && s.queueIndex === 0 && !s.tutorialDone && s.tutorialStep === 0) {
+  if (s.day === 1 && s.currentCargo && s.currentCargo.tutorialStep && !s.tutorialDone) {
     s.tutorialStep = 1;
     showD1Guide();
   }
@@ -594,7 +720,7 @@ function bindDeskCargoEvents(surf, c) {
       const targetKey = vEv ? vEv.target : (vMeta ? vMeta.target : '자유');
       const prev = getPreservationPreview(origLemma, val, targetKey, (vMeta && vMeta.oStar) || 70, s.day, ph);
       const msgEl = $('inline-edit-msg');
-      if (msgEl) msgEl.textContent = '"' + val + '" 미리 측정 완료 — 원뜻 보존 예상: ' + prev.tier;
+      if (msgEl) msgEl.textContent = '"' + val + '" 미리 측정 완료 — 원뜻 보존 예상: ' + prev.tier + (prev.estimated ? ' (추정치)' : '');
     });
     $('btn-inline-confirm').addEventListener('click', () => submitInlineEdit(inp.value));
     $('btn-inline-cancel').addEventListener('click', () => { s.activeEditWord = null; renderDeskCargo(); });
@@ -688,11 +814,15 @@ export function renderDeskCargo() {
     const spec = getD30Cutscene(c);
     if (spec) void playCutscene(spec);
   }
-  // (G) D1 첫 화물 가이드 — 첫 화물이 책상에 오르면 시작하고, 도장을 찍으면 끝난다.
-  if (s.day === 1 && s.queueIndex === 0 && !s.tutorialDone) {
-    if (s.tutorialStep === 0) { s.tutorialStep = 1; showD1Guide(); }
-    else if (s.tutorialStep === 4 && s.stamped) finishD1Guide();
-  } else if (s.tutorialStep > 0) {
+  // (G) D1 튜토리얼 날 가이드 — 튜토리얼 화물이 책상에 오르면 해당 수업이 열리고, 도장을 찍으면 접힌다.
+  updateMeterVisibility();
+  updateStampButtonsVisibility();
+  const lesson = currentD1Lesson();
+  if (s.day === 1 && lesson && !s.tutorialDone) {
+    if (s.stamped) hideD1GuideForCargo();
+    else if (s.tutorialStep === 0) { s.tutorialStep = 1; showD1Guide(); }
+    else showD1Guide();
+  } else if (s.tutorialStep > 0 && s.day !== 1) {
     finishD1Guide();
   }
   const surf = $('desk-surface');
@@ -812,7 +942,7 @@ function runR15QuickScan(c) {
 function selectProbeWord(raw) {
   const s = runtime.state;
   s.probeWord = raw;
-  if (s.tutorialStep === 1) { s.tutorialStep = 2; showD1Guide(); }
+  advanceD1GuideOn('probe');
   if ($('meter-direct-input')) $('meter-direct-input').value = '';
   $('meter-probe').textContent = runtime.LEX.lemmaOf(raw);
   const best = findBestTargetForWord(raw, s.currentCargo);
@@ -823,12 +953,12 @@ function selectProbeWord(raw) {
 
 export function runMeasurement(mode, overrideWord) {
   const { LEX, state: s } = runtime;
-  if (s.tutorialStep === 2) { s.tutorialStep = 3; showD1Guide(); }
-  if (s.day < 2) {
+  if (!isMeterUnlocked()) {
     SFX.nullBeep();
-    toast('측정기는 D2부터 지급됩니다. 오늘은 공문과 규칙집의 1등급 통제어를 확인하세요.', 'warn');
+    toast('측정기는 첫 화물을 받은 뒤에 사용할 수 있습니다.', 'warn');
     return;
   }
+  advanceD1GuideOn('measure', mode);
   if (s.measuring) return;
   if (s.meterBrokenUntil > s.clockMins) {
     SFX.warn();
@@ -837,7 +967,7 @@ export function runMeasurement(mode, overrideWord) {
   }
   const word = (overrideWord && String(overrideWord).trim()) || $('meter-direct-input').value.trim() || s.probeWord;
   if (!word) { toast('본문에서 낱말을 클릭하거나 직접 입력칸에 단어를 치세요.', 'warn'); return; }
-  if (s.settings.linguist && s.dayMeasureUsed >= s.dayMeasureQuota) {
+  if (isLinguistActive() && s.dayMeasureUsed >= s.dayMeasureQuota) {
     SFX.warn();
     toast('언어학자 모드: 오늘의 측정기 연산 할당(' + s.dayMeasureQuota + '회)을 모두 사용했습니다!', 'err');
     return;
@@ -847,7 +977,7 @@ export function runMeasurement(mode, overrideWord) {
   const targetKey = isAuto ? findBestTargetForWord(word, s.currentCargo).target : (s.meterTarget || '자유');
   const spec = getMeterSpec(s.meterLv);
   const cost = mode === 'fine' ? spec.fineCost : spec.fastCost;
-  if (s.settings.linguist) { s.dayMeasureUsed++; updateWorkHUD(); }
+  if (isLinguistActive()) { s.dayMeasureUsed++; updateWorkHUD(); }
   if (s.currentCargo) {
     const was = s.currentCargo._measured;
     s.currentCargo._measured = true;
@@ -892,8 +1022,20 @@ export function runMeasurement(mode, overrideWord) {
               ? '정밀 측정으로도 가려지지 않습니다. 서연에게 물어보거나(저녁), 당신의 판단으로 찍으세요.'
               : '범위가 경계선에 걸침 (정밀 측정 권장)'));
     const autoPrefix = isAuto ? ('[' + targetKey + '] ') : '';
-    $('meter-val-short').textContent = res.displayed + ' ±' + res.err;
-    $('meter-result').textContent = autoPrefix + helper + (res.senseNote || '');
+    // (5.4) 두 층 구분 — 세계관 층(빨강)과 시스템 층(회색)을 색·말투로 분리한다.
+    // 원칙: 측정하지 않은 값을 측정값처럼 보여주지 않는다.
+    let layerNote = '';
+    if (res.isControlled) {
+      const termId = (LEX.TERMS[targetKey] && LEX.TERMS[targetKey].id) ? LEX.TERMS[targetKey].id : targetKey;
+      layerNote = '<div class="layer-world">이 낱말은 통제 어휘입니다 (' + escapeHtml(termId) + ')</div>';
+    } else if (!res.inRegistry) {
+      layerNote = '<div class="layer-world">표준 대장에 없는 말입니다</div>';
+    }
+    if (res.estimated) {
+      layerNote += '<div class="layer-sys">측정기가 이 낱말을 모릅니다. 잠정값으로 처리합니다 (추정치)</div>';
+    }
+    $('meter-val-short').textContent = res.displayed + ' ±' + res.err + (res.estimated ? ' (추정치)' : '');
+    $('meter-result').innerHTML = escapeHtml(autoPrefix + helper + (res.senseNote || '')) + layerNote;
     $('meter-result').className = 'verdict-msg ' + cls;
 
     try {
@@ -1000,7 +1142,8 @@ function recordCargoFlags(cargo, code, editCtx = {}) {
 export function toggleEditMode() {
   const s = runtime.state;
   const c = s.currentCargo;
-  if (s.day < 3 || !c || !s.envelopeOpened || s.stamped || s.dilemmaOpen) return;
+  // 수정 도장은 D3부터 — 단 D1 튜토리얼 3번 화물에서는 예외적으로 열린다.
+  if ((s.day < 3 && !(s.day === 1 && c && c.tutorialEdit)) || !c || !s.envelopeOpened || s.stamped || s.dilemmaOpen) return;
   const isD30Final = isD30FinalCargo(c);
   if (s.day <= 7 && c.kind !== '개인 서신' && !c.editable) {
     SFX.warn(); toast('이 화물은 수정할 수 없습니다. (개인 서신 및 허용 화물만 수정 가능)', 'warn'); return;
@@ -1017,7 +1160,7 @@ export function toggleEditMode() {
     SFX.warn(); toast('이 화물에는 수정 도장을 쓸 수 없습니다.', 'warn'); return;
   }
   s.editMode = !s.editMode;
-  if (s.editMode) s.redactMode = false;
+  if (s.editMode) { s.redactMode = false; advanceD1GuideOn('edit-on'); }
   s.activeEditWord = null;
   if (s.editMode) toast('본문에서 고칠 낱말을 클릭하세요.');
   updateToolButtons();
@@ -1057,6 +1200,9 @@ function submitInlineEdit(inputVal) {
   const maskedHit = LOCALE ? LOCALE.matchMaskedTerm(rawInput, s.day) : null;
   if (!maskedHit && !isValidOpenKoreanWord(rawInput)) {
     SFX.nullBeep();
+    // (5.4) 두 층 구분 — 여기는 입력 형식 문제(시스템 층)만 나온다.
+    // 잘 만든 한국어 낱말은 대장에 없어도 수정어로 받아들인다(열린 어휘 설계) — 그런 낱말은
+    // '미리 측정'에서 추정치로 표시되므로, 여기서 '대장에 없는 말'로 거절하지 않는다.
     if (msgEl) msgEl.textContent = '"' + rawInput + '" — 올바른 한국어 낱말(완성형 한글 2글자 이상)을 입력하세요. (시간 소모 없음)';
     return;
   }
@@ -1086,6 +1232,7 @@ function submitInlineEdit(inputVal) {
     $('visitor-portrait').innerHTML = renderPortraitSVG(c.charId, 'sad');
     $('visitor-speech').textContent = '"' + renderTemplate(reactText, { v: rawInput, vLemma, w: origRaw, wLemma: origLemma }) + '"';
     recordCargoFlags(c, 'EDIT_BAD', { v: rawInput, vLemma });
+    showD1StepFeedback(c, 'edit-bad');
     updateWorkHUD();
     updateToolButtons();
     renderDeskCargo();
@@ -1112,6 +1259,7 @@ function submitInlineEdit(inputVal) {
 
   SFX.stamp('edit');
   s.activeEditWord = null;
+  advanceD1GuideOn('edit-done');
   renderDeskCargo();
 }
 
@@ -1195,6 +1343,7 @@ function commitEditStamp() {
   s.dayReviewLog.push({ visitor: c.visitor, action: '수정(' + avgP + '%)', expected: ev.violations.length ? ev.violations.map(v => v.rule + ':' + v.word).join(', ') : '적법(통과)', ok: ev.violations.length > 0 && unresolved.length === 0 });
   $('visitor-portrait').innerHTML = renderPortraitSVG(c.charId, 'normal');
   $('visitor-speech').textContent = '"' + renderTemplate(reactLine, editCtx) + '"';
+  showD1StepFeedback(c, 'edit', { P: avgP, v: firstEdit.replacement });
   updateWorkHUD();
   updateToolButtons();
   renderDeskCargo();
@@ -1351,6 +1500,7 @@ export function stampPass() {
     recordCargoFlags(c, 'PASS');
   }
 
+  showD1StepFeedback(c, 'pass');
   updateWorkHUD();
   updateToolButtons();
   renderDeskCargo();
@@ -1430,6 +1580,7 @@ function stampDeny(reasonCode) {
   $('visitor-portrait').innerHTML = renderPortraitSVG(c.charId, 'sad');
   $('visitor-speech').textContent = '"' + renderTemplate(denyLine) + '"';
   recordCargoFlags(c, didReport ? 'DENY_REPORT' : 'DENY');
+  showD1StepFeedback(c, 'deny', reasonCode);
   updateWorkHUD();
   updateToolButtons();
   renderDeskCargo();
@@ -1476,7 +1627,7 @@ function scheduleQuickFlowAdvance(cargo) {
   setTimeout(() => {
     if (runtime.state.currentCargo === cargo && runtime.state.stamped && $('screen-work').classList.contains('active')) {
       finishCurrentCargo();
-      if (!runtime.state.currentCargo && (runtime.state.settings.linguist || runtime.state.clockMins < getShiftMaxMins(runtime.state.day))) {
+      if (!runtime.state.currentCargo && (isLinguistActive() || runtime.state.clockMins < getShiftMaxMins(runtime.state.day))) {
         callNextVisitor();
       }
     }
@@ -1509,7 +1660,7 @@ export function finishCurrentCargo() {
     $('visitor-portrait').innerHTML = renderPortraitSVG('director', 'happy');
     $('visitor-name').textContent = '국장 문태오';
     $('visitor-speech').textContent = '"오늘 화물은 모두 끝났네. 정산하고 퇴근하게."';
-  } else if (!s.settings.linguist && s.clockMins >= getShiftMaxMins(s.day)) {
+  } else if (!isLinguistActive() && s.clockMins >= getShiftMaxMins(s.day)) {
     if (s.day === 30 && s.queueIndex < d.cargos.length - 1) {
       s.queueIndex = d.cargos.length - 1;
       callNextVisitor();
