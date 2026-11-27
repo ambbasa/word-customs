@@ -28,10 +28,6 @@
   </defs>
 </svg>
 
-<div id="load-overlay">
-  <div class="load-card" id="load-card-msg">stages 데이터를 불러오는 중입니다…</div>
-</div>
-
 <div id="letterbox-top" class="letterbox-bar top"></div>
 <div id="letterbox-bottom" class="letterbox-bar bottom"></div>
 
@@ -52,10 +48,11 @@
       <button id="btn-parent-mom">엄마</button>
     </div>
     <div class="parent-pick-note">하람이 플레이어를 부르는 호칭입니다. 저녁 대화 등에서 등장인물들이 부르는 호칭이 바뀝니다.</div>
+    <div id="boot-status" class="boot-status"><span class="boot-dot"></span><span id="boot-status-text">준비 중…</span></div>
     <div class="title-actions">
-      <button id="btn-start-new" class="btn-primary">새 근무 시작 (D1)</button>
+      <button id="btn-start-new" class="btn-primary" disabled title="stages 데이터를 불러오는 중입니다">새 근무 시작 (D1)</button>
       <button id="btn-continue" class="btn-secondary" style="display:none;">이어하기</button>
-      <button id="btn-open-timeline-title" class="btn-secondary">분기 타임라인 · 엔딩(20)</button>
+      <button id="btn-open-timeline-title" class="btn-secondary" disabled title="stages 데이터를 불러오는 중입니다">분기 타임라인 · 엔딩(20)</button>
       <button id="btn-open-dict-title" class="btn-secondary">복원 사전</button>
       <button id="btn-open-settings-title" class="btn-secondary">설정</button>
     </div>
@@ -133,18 +130,20 @@
         <span>제7심사 창구</span>
         <span id="booth-status">대기</span>
       </div>
-      <div class="booth-glass">
-        <div id="visitor-portrait"></div>
-        <div id="visitor-name" class="visitor-name">창구 대기 중</div>
-      </div>
-      <div id="visitor-speech" class="speech-bubble">호출 벨을 눌러 다음 손님을 부르세요.</div>
-      <div id="tutorial-tip" class="tutorial-tip" style="display:none;">
-        <div id="tutorial-tip-text"></div>
-        <div class="tutorial-tip-foot"><button id="btn-tip-ok">확인</button></div>
-      </div>
-      <div id="d1-guide" class="d1-guide" style="display:none;">
-        <div id="d1-guide-text"></div>
-        <div class="d1-guide-foot"><button id="btn-d1-guide-next">다음</button><button id="btn-d1-guide-skip">건너뛰기</button></div>
+      <div class="booth-scroll">
+        <div class="booth-glass">
+          <div id="visitor-portrait"></div>
+          <div id="visitor-name" class="visitor-name">창구 대기 중</div>
+        </div>
+        <div id="visitor-speech" class="speech-bubble">호출 벨을 눌러 다음 손님을 부르세요.</div>
+        <div id="tutorial-tip" class="tutorial-tip" style="display:none;">
+          <div id="tutorial-tip-text"></div>
+          <div class="tutorial-tip-foot"><button id="btn-tip-ok">확인</button></div>
+        </div>
+        <div id="d1-guide" class="d1-guide" style="display:none;">
+          <div id="d1-guide-text"></div>
+          <div class="d1-guide-foot"><button id="btn-d1-guide-next">다음</button><button id="btn-d1-guide-skip">건너뛰기</button></div>
+        </div>
       </div>
       <button id="btn-question" class="question-btn" disabled title="선택한 낱말의 의도를 방문객에게 1회 추궁합니다">💬 낱말 추궁 (화물당 1회)</button>
       <button id="btn-bell" class="bell-btn pulse">
@@ -371,6 +370,14 @@
     <div>
       <button id="btn-restore-close" class="btn-primary">복원 사전에 기록</button>
     </div>
+  </div>
+</div>
+
+<div id="modal-confirm" class="modal-backdrop">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-head"><span id="confirm-title">확인</span><button id="btn-close-confirm" style="padding:2px 8px;">✕</button></div>
+    <div id="confirm-body" style="font-size:0.9rem;line-height:1.7;margin-bottom:14px;"></div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;"><button id="btn-confirm-cancel" class="btn-secondary">취소</button><button id="btn-confirm-ok" class="btn-primary">계속</button></div>
   </div>
 </div>
 

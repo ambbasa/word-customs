@@ -657,7 +657,10 @@ function renderDeskBarsHtml(c) {
   const redactedCount = Object.values(c.edits).filter(e => e && e.redacted).length;
   const redactFinishBar = (s.redactMode && !s.stamped)
     ? '<div class="return-bar"><span>' + (redactedCount > 0 ? ('먹칠한 낱말 ' + redactedCount + '건. 다시 클릭하면 해제됩니다.') : '먹칠 모드: 본문에서 지울 낱말을 직접 클릭하세요.') + '</span>'
+      + '<span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'
       + (redactedCount > 0 ? '<button id="btn-commit-redact-stamp" class="btn-primary" style="padding:7px 14px;font-size:0.84rem;">■ 먹칠 통과 확정</button>' : '')
+      + '<button id="btn-cancel-redact" class="btn-secondary" style="padding:7px 14px;font-size:0.84rem;" title="이번 먹칠을 모두 지우고 먹칠 모드에서 나옵니다 (Esc)">취소</button>'
+      + '</span>'
       + '</div>'
     : '';
 
@@ -766,6 +769,7 @@ function bindDeskCargoEvents(surf, c) {
 
   if ($('btn-commit-edit-stamp')) $('btn-commit-edit-stamp').addEventListener('click', commitEditStamp);
   if ($('btn-commit-redact-stamp')) $('btn-commit-redact-stamp').addEventListener('click', commitRedactStamp);
+  if ($('btn-cancel-redact')) $('btn-cancel-redact').addEventListener('click', cancelRedactMode);
   if ($('btn-return-cargo')) $('btn-return-cargo').addEventListener('click', finishCurrentCargo);
 }
 
@@ -1389,6 +1393,26 @@ export function stampRedact() {
     s.activeEditWord = null;
     toast('먹칠 모드: 본문에서 검열할 낱말을 직접 클릭한 뒤 확정하세요. (낱말당 ' + GAME_CONFIG.REDACT_MINS_PER_WORD + '분 · 수당 ₵' + GAME_CONFIG.PROC_PAY_REDACT + ')');
   }
+  updateToolButtons();
+  renderDeskCargo();
+}
+
+// 먹칠 모드 취소 — 이번 모드에서 임시로 먹칠한 낱말을 모두 되돌리고 화면을 다시 그린다.
+export function cancelRedactMode() {
+  const s = runtime.state;
+  const c = s.currentCargo;
+  if (!s.redactMode) return;
+  let restored = 0;
+  if (c && c.edits) {
+    Object.keys(c.edits).forEach(tid => {
+      if (c.edits[tid] && c.edits[tid].redacted) { delete c.edits[tid]; restored++; }
+    });
+  }
+  s.redactMode = false;
+  SFX.paper();
+  toast(restored > 0
+    ? '먹칠 모드를 취소했습니다. (임시 먹칠 ' + restored + '건 되돌림)'
+    : '먹칠 모드를 취소했습니다.');
   updateToolButtons();
   renderDeskCargo();
 }

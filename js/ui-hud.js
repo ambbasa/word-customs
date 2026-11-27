@@ -139,17 +139,40 @@ export function updateToolButtons() {
   $('btn-end-shift-early').style.display = (!s.currentCargo && !hasMore) ? 'inline-block' : 'none';
 }
 
+/* (P0-2) 측정기 칩이 좁은 열에서 잘리지 않도록, 실제로 보여줄 소수만 고른다.
+   우선순위: 추천 통제어 → 현재 선택 → 화물 관련(위반·시뮬) → 등급 1→2→3 순서. */
+function pickChipTerms(terms, cargo, recommendedTerm, selected, max) {
+  const picked = [];
+  const push = t => {
+    if (t && terms.includes(t) && !picked.includes(t) && picked.length < max) picked.push(t);
+  };
+  push(recommendedTerm);
+  if (selected && selected !== 'AUTO') push(selected);
+  if (cargo) {
+    (cargo.violations || []).forEach(v => push(v && v.target));
+    (cargo.sims || []).forEach(sm => push(sm && sm.target));
+  }
+  const gradeOf = t => {
+    const g = runtime.LEX.TERMS[t] && runtime.LEX.TERMS[t].grade;
+    return g === 1 ? 1 : (g === 2 ? 2 : 3);
+  };
+  terms.filter(t => !picked.includes(t)).sort((a, b) => gradeOf(a) - gradeOf(b)).forEach(push);
+  return picked;
+}
+
 export function populateMeterTargets(recommendedTerm = null) {
   const { LEX, state: s } = runtime;
-  const terms = getMeterChipTerms(s.currentCargo);
+  const cargo = s.currentCargo;
+  const terms = getMeterChipTerms(cargo);
+  const tutorialTerms = (cargo && Array.isArray(cargo.tutorialChips)) ? cargo.tutorialChips : [];
   const useAutoOption = terms.length >= 2;
   if (s.meterTarget !== 'AUTO' && !terms.includes(s.meterTarget)) {
     s.meterTarget = useAutoOption ? 'AUTO' : (terms[0] || '자유');
   }
   const wrap = $('meter-target-chips');
   wrap.innerHTML = '';
-  const origin = s.currentCargo ? s.currentCargo.origin : '제1구역';
-  const ph = s.currentCargo ? cargoPhase(s.currentCargo) : currentPhase();
+  const origin = cargo ? cargo.origin : '제1구역';
+  const ph = cargo ? cargoPhase(cargo) : currentPhase();
 
   const selectTarget = (t) => {
     s.meterTarget = t;
@@ -170,31 +193,84 @@ export function populateMeterTargets(recommendedTerm = null) {
     wrap.appendChild(autoBtn);
   }
 
-  terms.forEach(t => {
+  // 칩은 ✨자동 + 최대 3개. 나머지 통제어는 오른쪽 드롭다운에서 고른다 (스크롤 잘림·중복 노출 없음).
+  const MAX_CHIP_TERMS = 3;
+  const chipTerms = pickChipTerms(terms, cargo, recommendedTerm, s.meterTarget, MAX_CHIP_TERMS);
+
+  chipTerms.forEach(t => {
     const L = LEX.effL(t, s.day, ph, origin);
     const g = LEX.TERMS[t] && LEX.TERMS[t].grade;
     const gCls = g === 1 ? ' g1' : (g === 2 ? ' g2' : ' g3');
+    const isTutorial = tutorialTerms.includes(t);
     const recCls = (recommendedTerm && t === recommendedTerm) ? ' recommended' : '';
     const btn = document.createElement('button');
-    btn.className = 'target-chip-btn' + gCls + recCls + (t === s.meterTarget ? ' active' : '');
-    btn.textContent = t + ' ' + L;
+    btn.className = 'target-chip-btn' + gCls + recCls + (isTutorial ? ' tutorial-chip' : '') + (t === s.meterTarget ? ' active' : '');
+    btn.innerHTML = escapeHtml(t) + ' ' + L + (isTutorial ? '<span class="chip-badge">훈련용</span>' : '');
+    btn.title = isTutorial
+      ? '훈련용 측정 칩 — 국장이 빌려준 연습용입니다. 실제 통제어 목록에는 없는 낱말입니다.'
+      : ('「' + t + '」 유사도 측정 (경계 L' + L + ')');
     btn.addEventListener('click', () => selectTarget(t));
     wrap.appendChild(btn);
   });
 
   const sel = $('meter-target-select');
   if (sel) {
-    if (terms.length >= 7) {
+    const hiddenCount = terms.length - chipTerms.length;
+    if (hiddenCount > 0) {
       sel.style.display = 'inline-block';
       sel.innerHTML = (useAutoOption ? '<option value="AUTO">✨ 자동 탐색</option>' : '')
-        + terms.map(t => '<option value="' + escapeHtml(t) + '">' + escapeHtml(t) + ' (L' + LEX.effL(t, s.day, ph, origin) + ')</option>').join('');
+        + terms.map(t => '<option value="' + escapeHtml(t) + '">' + escapeHtml(t) + ' (L' + LEX.effL(t, s.day, ph, origin) + ')'
+          + (tutorialTerms.includes(t) ? ' · 훈련용' : '') + '</option>').join('');
       sel.value = s.meterTarget;
+      sel.title = '전체 통제어 ' + terms.length + '개 — 칩에 없는 ' + hiddenCount + '개는 여기서 고릅니다';
     } else {
       sel.style.display = 'none';
     }
   }
 
-  $('meter-target-label').textContent = s.meterTarget === 'AUTO' ? ('자동' + (recommendedTerm ? '(' + recommendedTerm + ')' : '')) : s.meterTarget;
+  const labelTerm = s.meterTarget === 'AUTO' ? ('자동' + (recommendedTerm ? '(' + recommendedTerm + ')' : '')) : s.meterTarget;
+  $('meter-target-label').textContent = labelTerm + (tutorialTerms.includes(s.meterTarget) ? ' · 훈련용' : '');
+}
+
+/* (P2-5) 브라우저 기본 confirm() 대신 인게임 모달로 묻는다. 확인=true / 취소=false */
+export function confirmModal({ title = '확인', body = '', okLabel = '계속', cancelLabel = '취소', danger = false } = {}) {
+  return new Promise(resolve => {
+    const modal = $('modal-confirm');
+    if (!modal) { resolve(false); return; }
+    const okBtn = $('btn-confirm-ok');
+    const cancelBtn = $('btn-confirm-cancel');
+    const closeBtn = $('btn-close-confirm');
+    $('confirm-title').textContent = title;
+    $('confirm-body').innerHTML = body;
+    okBtn.textContent = okLabel;
+    okBtn.className = danger ? 'btn-danger' : 'btn-primary';
+    cancelBtn.textContent = cancelLabel;
+    const prevFocus = document.activeElement;
+
+    const cleanup = (val) => {
+      modal.classList.remove('active');
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      closeBtn.removeEventListener('click', onCancel);
+      document.removeEventListener('keydown', onKey, true);
+      if (prevFocus && typeof prevFocus.focus === 'function') { try { prevFocus.focus(); } catch {} }
+      resolve(val);
+    };
+    const onOk = () => cleanup(true);
+    const onCancel = () => cleanup(false);
+    const onKey = (e) => {
+      if (e.isComposing || e.keyCode === 229) return;
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cleanup(false); }
+      else if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); cleanup(true); }
+    };
+
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+    closeBtn.addEventListener('click', onCancel);
+    document.addEventListener('keydown', onKey, true);
+    modal.classList.add('active');
+    okBtn.focus();
+  });
 }
 
 function polarPt(cx, cy, r, v) {

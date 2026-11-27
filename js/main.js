@@ -9,7 +9,7 @@ import {
   saveProgress,
   loadProgress
 } from './state.js';
-import { getShiftMaxMins, isLinguistActive } from './logic.js';
+import { getShiftMaxMins, isLinguistActive, escapeHtml } from './logic.js';
 import {
   $,
   toast,
@@ -18,7 +18,8 @@ import {
   populateMeterTargets,
   renderMeterDial,
   renderSemanticRadar,
-  renderRulebook
+  renderRulebook,
+  confirmModal
 } from './ui-hud.js';
 import {
   playIntro,
@@ -50,7 +51,8 @@ import {
   questionVisitor,
   finishCurrentCargo,
   advanceD1Guide,
-  finishD1Guide
+  finishD1Guide,
+  cancelRedactMode
 } from './work.js';
 
 function loadCjsModule(src, reqMap) {
@@ -66,6 +68,22 @@ function loadCjsModule(src, reqMap) {
 }
 
 async function bootStages() {
+  const statusEl = $('boot-status');
+  const statusText = $('boot-status-text');
+  const jumpDetails = document.querySelector('.day-jump-details');
+  // (P2-6) 타이틀은 처음부터 보여 준다. 데이터가 준비되는 동안에는 시작·점프 버튼만 잠그고
+  // 카드 아래 작은 점멸 표시로 진행 상태를 알린다.
+  const setLoading = (loading) => {
+    ['btn-start-new', 'btn-open-timeline-title'].forEach(id => {
+      const b = $(id);
+      if (!b) return;
+      b.disabled = loading;
+      if (loading) b.title = 'stages 데이터를 불러오는 중입니다';
+      else b.removeAttribute('title');
+    });
+    if (jumpDetails) jumpDetails.classList.toggle('loading', loading);
+  };
+  setLoading(true);
   try {
     const [buildSrc, lexSrc, engSrc, adpSrc, koSrc, enSrc, ...dayResponses] = await Promise.all([
       fetch('stages/tools/build-data.js').then(r => { if (!r.ok) throw new Error('build-data'); return r.text(); }),
@@ -89,10 +107,12 @@ async function bootStages() {
     dayResponses.forEach((dObj, i) => { runtime.DAYS_DATA[i + 1] = dObj; });
 
     buildDayJumpButtons();
-    $('load-overlay').classList.add('hidden');
+    setLoading(false);
+    statusEl.classList.add('hidden');
     if (loadProgress()) $('btn-continue').style.display = 'inline-block';
   } catch (e) {
-    $('load-card-msg').innerHTML = '<strong>stages 데이터를 불러오지 못했습니다(로컬 서버로 여세요)</strong>';
+    statusEl.classList.add('err');
+    if (statusText) statusText.textContent = 'stages 데이터를 불러오지 못했습니다 — 새로고침하거나 로컬 서버로 열어 주세요.';
   }
 }
 
@@ -104,9 +124,17 @@ function buildDayJumpButtons() {
     btn.dataset.jumpDay = String(d);
     btn.textContent = 'D' + d;
     btn.title = runtime.DAYS_DATA[d] ? runtime.DAYS_DATA[d].title || ('D' + d) : ('D' + d);
-    btn.addEventListener('click', () => {
-      // (K) 날짜 점프 확인 — 스토리와 화물을 건너뛴다는 경고를 먼저 보여준다.
-      if (!window.confirm('D' + d + '로 이동합니다. 이전 날짜의 스토리와 화물을 건너뜁니다. 계속할까요?')) return;
+    btn.addEventListener('click', async () => {
+      // (P2-5) 날짜 점프 확인 — 브라우저 기본 confirm 대신 인게임 모달(설정·장부와 같은 스타일).
+      const dayTitle = runtime.DAYS_DATA[d] ? (runtime.DAYS_DATA[d].title || '') : '';
+      const ok = await confirmModal({
+        title: '챕터 점프 · D' + d,
+        body: '<span class="confirm-target">D' + d + ' ' + escapeHtml(dayTitle) + '</span>로 이동합니다.<br>이전 날짜의 스토리와 화물을 건너뜁니다.'
+          + '<span class="confirm-note">이동하면 D' + d + ' 아침 공문부터 시작합니다. 돌아올 수 없습니다.</span>',
+        okLabel: 'D' + d + '로 이동',
+        cancelLabel: '취소'
+      });
+      if (!ok) return;
       const parentTitle = runtime.state.flags['부모호칭'] || '아빠';
       const prevSettings = Object.assign({}, runtime.state.settings);
       runtime.state = applyJumpPreset(createFreshState(d), d);
@@ -292,7 +320,7 @@ function bindModalAndSettingsEvents() {
 function bindKeyboardShortcuts() {
   window.addEventListener('keydown', e => {
     if (e.isComposing || e.keyCode === 229) return;
-    const modalOpen = ['modal-deny', 'modal-dict', 'modal-revision', 'modal-settings', 'modal-timeline', 'modal-dilemma', 'modal-cutscene']
+    const modalOpen = ['modal-deny', 'modal-dict', 'modal-revision', 'modal-settings', 'modal-timeline', 'modal-dilemma', 'modal-cutscene', 'modal-confirm']
       .some(id => $(id) && $(id).classList.contains('active'));
 
     if (e.key === 'Escape') {
@@ -305,6 +333,7 @@ function bindKeyboardShortcuts() {
       else if ($('modal-revision').classList.contains('active')) { $('modal-revision').classList.remove('active'); s.revisionOpen = false; }
       else if ($('modal-settings').classList.contains('active')) closeSettingsModal();
       else if ($('modal-cutscene') && $('modal-cutscene').classList.contains('active')) { /* 컷씬이 Esc를 직접 처리한다 */ }
+      else if ($('screen-work').classList.contains('active') && s.redactMode) cancelRedactMode();
       else if ($('screen-work').classList.contains('active')) openSettingsModal();
       return;
     }
