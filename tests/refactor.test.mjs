@@ -583,4 +583,47 @@ test('D2/D28 notice wording fixes', () => {
   assert(!d28.tutorialNote.includes('모든 화물'), 'D28 note must not contradict R15 with "모든 화물"');
 });
 
+test('Round 11: R04 cargos spread across D7-D30 (13 total), each a single decl-field mismatch', () => {
+  const r04 = [];
+  for (let d = 1; d <= 30; d++) {
+    runtime.state = createFreshState(d);
+    for (const c of runtime.DAYS_DATA[d].cargos) {
+      const ph = c.revisionPhase === 'after' ? 'after' : 'before';
+      const ev = logic.evaluateCargoDisplay(c, ph);
+      const r04v = ev.violations.filter(v => v.rule === 'R04');
+      if (!r04v.length) continue;
+      r04.push({ day: d, c, r04v });
+      // engine-derived R04 must be exactly one violation, matching JSON metadata
+      assert.equal(ev.violations.length, 1, `${c.id} must be R04-only`);
+      assert.equal(r04v.length, 1, `${c.id} must have exactly one R04 entry`);
+      assert.equal((c.violations || []).length, 1, `${c.id} JSON violations must list the R04 entry`);
+      assert.equal(c.violations[0].rule, 'R04', `${c.id} JSON violation must be R04`);
+      assert.deepEqual(c.expect, ['R04'], `${c.id} expect must be R04`);
+      assert.equal(c.verdict.legal, false, `${c.id} verdict must be illegal`);
+      assert.deepEqual(c.verdict.accept, ['DENY'], `${c.id} verdict must accept DENY only`);
+      assert.equal(c.editable, false, `${c.id} R04 cargo must not be editable`);
+      // exactly one decl field mismatches the real cargo
+      const diffs = ['kind', 'origin', 'pages'].filter(k => String(c.decl[k]) !== String(c[k]));
+      assert.deepEqual(diffs, [r04v[0].word === '[신고서 종류]' ? 'kind' : r04v[0].word === '[신고서 발신]' ? 'origin' : 'pages'],
+        `${c.id} must mismatch exactly the field its R04 word names`);
+    }
+  }
+  assert.equal(r04.length, 13, 'campaign must have 13 R04 cargos (5 original + 8 spread)');
+  const inRange = (a, b) => r04.filter(x => x.day >= a && x.day <= b).length;
+  assert.equal(inRange(7, 10), 2, 'D7-D10 must have 2 new R04 cargos');
+  assert.equal(inRange(11, 20), 3, 'D11-D20 must have 3 new R04 cargos');
+  assert.equal(inRange(21, 30), 3, 'D21-D30 must have 3 new R04 cargos');
+  assert.equal(inRange(4, 6), 5, 'original D4-D6 R04 cargos must be untouched');
+  // no R04 on the D30 final cargo (kind 사전) or on dilemma/memory/resistance cargos
+  // (applies to the 8 spread cargos; original D4-4 is a memory cargo by design)
+  for (const { day, c } of r04) {
+    if (day < 7) continue;
+    assert(c.kind !== '사전', `${c.id} D30 final cargo must not be R04`);
+    assert(!c.memory && !c.memoryId && !c.resistance && !c.dilemma, `${c.id} must not be a memory/resistance/dilemma cargo`);
+  }
+  // D4 tutorial note warns the mismatch can appear on any day
+  assert(runtime.DAYS_DATA[4].tutorialNote.includes('어느 날이든'),
+    'D4 tutorial note must say declaration mismatches can appear on any day');
+});
+
 console.log(`\nALL ${passed} TESTS PASSED!`);

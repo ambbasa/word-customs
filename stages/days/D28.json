@@ -1470,27 +1470,39 @@
       "origin": "제1구역",
       "pages": 1,
       "decl": {
-        "kind": "엽서",
+        "kind": "일기",
         "origin": "제1구역",
         "pages": 1
       },
       "body": "찹쌀떡 고마웠어요. 맛있게 먹었어요.",
-      "violations": [],
+      "violations": [
+        {
+          "word": "[신고서 종류]",
+          "rule": "R04",
+          "target": null,
+          "grade": 3,
+          "uneditable": true
+        }
+      ],
       "reactPass": "감사합니다.",
       "reactDeny": "압수라니요, 다시 한 번 봐 주세요.",
       "reactEdit": "'{v}'… 괜찮네요. 고맙습니다.",
       "role": "background",
-      "expect": [],
-      "editable": true,
+      "expect": [
+        "R04"
+      ],
+      "editable": false,
       "sims": [],
       "verdict": {
-        "legal": true,
+        "legal": false,
         "accept": [
-          "PASS"
+          "DENY"
         ],
-        "rules": []
+        "rules": [
+          "R04"
+        ]
       },
-      "auditP": 0,
+      "auditP": 0.3,
       "react": {
         "PASS": [
           "감사합니다.",
@@ -1519,14 +1531,14 @@
       },
       "stats": {
         "PASS": {
-          "credit": 5
+          "SLIPPED": {},
+          "CAUGHT": {
+            "S": 8,
+            "warning": 1
+          }
         },
         "DENY": {
-          "complaintP": 0.5
-        },
-        "EDIT_WRONG": {
-          "complaintP": 0.5,
-          "editUsed": 1
+          "credit": 5
         }
       }
     },

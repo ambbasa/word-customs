@@ -1663,27 +1663,39 @@
    "pages": 1,
    "decl": {
     "kind": "개인 서신",
-    "origin": "제1구역",
+    "origin": "제2구역",
     "pages": 1
    },
    "body": "아빠, 보일러 고치는 기사님이 금요일 오후에 온대요.",
-   "violations": [],
+   "violations": [
+    {
+     "word": "[신고서 발신]",
+     "rule": "R04",
+     "target": null,
+     "grade": 3,
+     "uneditable": true
+    }
+   ],
    "reactPass": "다행이네요. 감사합니다.",
    "reactDeny": "압수라니요, 다시 한 번 봐 주세요.",
    "reactEdit": "'{v}'… 괜찮네요. 고맙습니다.",
    "role": "background",
-   "expect": [],
+   "expect": [
+    "R04"
+   ],
    "express": true,
-   "editable": true,
+   "editable": false,
    "sims": [],
    "verdict": {
-    "legal": true,
+    "legal": false,
     "accept": [
-     "PASS"
+     "DENY"
     ],
-    "rules": []
+    "rules": [
+     "R04"
+    ]
    },
-   "auditP": 0,
+   "auditP": 0.2,
    "react": {
     "PASS": [
      "다행이네요. 감사합니다.",
@@ -1712,14 +1724,14 @@
    },
    "stats": {
     "PASS": {
-     "credit": 5
+     "SLIPPED": {},
+     "CAUGHT": {
+      "S": 5,
+      "warning": 1
+     }
     },
     "DENY": {
-     "complaintP": 0.5
-    },
-    "EDIT_WRONG": {
-     "complaintP": 0.5,
-     "editUsed": 1
+     "credit": 5
     }
    }
   },

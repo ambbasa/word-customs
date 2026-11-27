@@ -1408,18 +1408,28 @@
    "origin": "제2구역",
    "pages": 1,
    "decl": {
-    "kind": "엽서",
+    "kind": "개인 서신",
     "origin": "제2구역",
     "pages": 1
    },
    "body": "어제 빌린 사다리 돌려드렸어요. 고맙습니다.",
-   "violations": [],
+   "violations": [
+    {
+     "word": "[신고서 종류]",
+     "rule": "R04",
+     "target": null,
+     "grade": 3,
+     "uneditable": true
+    }
+   ],
    "reactPass": "다행이네요. 감사합니다.",
    "reactDeny": "네? 이게 왜 안 된다는 거죠?",
    "reactEdit": "'{v}'… 괜찮네요. 고맙습니다.",
    "role": "background",
-   "expect": [],
-   "editable": true,
+   "expect": [
+    "R04"
+   ],
+   "editable": false,
    "sims": [
     {
      "word": "고맙습니다",
@@ -1429,13 +1439,15 @@
     }
    ],
    "verdict": {
-    "legal": true,
+    "legal": false,
     "accept": [
-     "PASS"
+     "DENY"
     ],
-    "rules": []
+    "rules": [
+     "R04"
+    ]
    },
-   "auditP": 0,
+   "auditP": 0.45,
    "react": {
     "PASS": [
      "다행이네요. 감사합니다.",
@@ -1464,14 +1476,14 @@
    },
    "stats": {
     "PASS": {
-     "credit": 5
+     "SLIPPED": {},
+     "CAUGHT": {
+      "S": 5,
+      "warning": 1
+     }
     },
     "DENY": {
-     "complaintP": 0.5
-    },
-    "EDIT_WRONG": {
-     "complaintP": 0.5,
-     "editUsed": 1
+     "credit": 5
     }
    }
   },
