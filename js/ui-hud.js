@@ -279,6 +279,18 @@ function polarPt(cx, cy, r, v) {
   return [cx + r * Math.cos(a), cy - r * Math.sin(a)];
 }
 
+// 다이얼 라벨의 대략적인 가로 폭(px). font-size 10 기준 — viewBox 밖으로 잘리지 않게 밀어 넣는 데 쓴다.
+function dialTextWidth(str) {
+  let w = 0;
+  for (const ch of str) {
+    if (ch === ' ') w += 2.9;
+    else if (/[0-9A-Za-z]/.test(ch)) w += 5.6;
+    else if (/[().\-]/.test(ch)) w += 3.4;
+    else w += 9.6; // 한글
+  }
+  return w;
+}
+
 export function renderMeterDial(res, effLVal, baseLVal) {
   const svg = $('meter-dial-svg');
   const cx = 145, cy = 86, rOut = 65, rIn = 18;
@@ -306,6 +318,20 @@ export function renderMeterDial(res, effLVal, baseLVal) {
   const [nx, ny] = polarPt(cx, cy, rOut - 4, res ? res.displayed : 0);
   const rangeLabel = res ? ('구간 ' + res.min + '~' + res.max) : ('경계 L' + effLVal);
 
+  // 꼭대기 눈금은 50(0·100과 같은 눈금 색). 경계 L 라벨은 고정 위치가 아니라 빨간 경계선(effLVal) 끝을 따라간다.
+  const effTxt = 'L' + effLVal + (baseLVal !== effLVal ? ' (원래 ' + baseLVal + ')' : '');
+  const effW = dialTextWidth(effTxt);
+  const [lx0, ly0] = polarPt(cx, cy, rOut + 12, effLVal);
+  let lAnchor = 'middle';
+  let lx = lx0;
+  if (lx0 >= cx + 8) { lAnchor = 'start'; lx = Math.min(lx0, 282 - effW); }
+  else if (lx0 <= cx - 8) { lAnchor = 'end'; lx = Math.max(lx0, 10 + effW); }
+  else { lx = Math.max(10 + effW / 2, Math.min(282 - effW / 2, lx0)); }
+  const ly = Math.max(ly0, 16);
+  const showTick50 = !(effLVal >= 46 && effLVal <= 54);
+  const showTick0 = effLVal > 8;
+  const showTick100 = effLVal < 92;
+
   svg.innerHTML =
     '<g>'
     + '<rect x="6" y="4" width="280" height="112" rx="5" fill="#0B1117"/>'
@@ -321,10 +347,11 @@ export function renderMeterDial(res, effLVal, baseLVal) {
     + '<line x1="' + cx + '" y1="' + cy + '" x2="' + nx.toFixed(1) + '" y2="' + ny.toFixed(1) + '" stroke="#F8FAFC" stroke-width="2.6" stroke-linecap="round"/>'
     + '<circle cx="' + cx + '" cy="' + cy + '" r="5.5" fill="#35F2A0" stroke="#0B1117" stroke-width="1.8"/>'
     + '</g>'
-    + '<text x="145" y="16" font-size="10" font-weight="700" fill="#FCA5A5" text-anchor="middle">L' + effLVal + (baseLVal !== effLVal ? ' (원래 ' + baseLVal + ')' : '') + '</text>'
     + '<text x="145" y="109" font-size="10" font-weight="700" fill="#9CB0C4" text-anchor="middle">' + rangeLabel + '</text>'
-    + '<text x="72" y="89" font-size="9.5" font-weight="700" fill="#9CB0C4" text-anchor="end">0</text>'
-    + '<text x="218" y="89" font-size="9.5" font-weight="700" fill="#9CB0C4">100</text>';
+    + (showTick50 ? '<text x="145" y="16" font-size="10" font-weight="700" fill="#9CB0C4" text-anchor="middle">50</text>' : '')
+    + (showTick0 ? '<text x="72" y="89" font-size="9.5" font-weight="700" fill="#9CB0C4" text-anchor="end">0</text>' : '')
+    + (showTick100 ? '<text x="218" y="89" font-size="9.5" font-weight="700" fill="#9CB0C4">100</text>' : '')
+    + '<text x="' + lx.toFixed(1) + '" y="' + ly.toFixed(1) + '" font-size="10" font-weight="700" fill="#FCA5A5" text-anchor="' + lAnchor + '" stroke="#0B1117" stroke-width="2.6" stroke-linejoin="round" paint-order="stroke">' + effTxt + '</text>';
 
   runtime.state.lastMeterRes = { res, effLVal, baseLVal };
   if (runtime.state.meterView === 'radar') renderSemanticRadar(res, effLVal);

@@ -891,6 +891,12 @@ button:disabled { opacity: 0.42; cursor: not-allowed; }
   .tutorial-tip {
     position: fixed; top: 44px; bottom: auto; left: 8px; right: 8px; z-index: 95;
   }
+  /* 좁은 화면: 안내·튜토리얼 박스가 한 줄 전체 폭을 쓰고 줄바꿈되게 한다(오른쪽 버튼 잘림 방지). */
+  .d1-guide, .tutorial-tip {
+    flex: 1 1 100% !important; min-width: 0; max-width: 100%;
+    box-sizing: border-box; overflow-wrap: anywhere; word-break: keep-all;
+  }
+  .d1-guide-foot, .tutorial-tip-foot { flex-wrap: wrap; gap: 6px; }
   .bell-btn {
     margin-top: 0; padding: 6px 8px; font-size: 0.72rem; flex-shrink: 0;
   }
