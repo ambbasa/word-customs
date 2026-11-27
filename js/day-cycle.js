@@ -30,7 +30,9 @@ import {
   renderTemplate,
   calculateDayMeasureQuota,
   calculateDailyCosts,
-  buildEndingCallbacks
+  buildEndingCallbacks,
+  isD30FinalCargo,
+  computeD30Settlement
 } from './logic.js';
 import { $, showScreen, toast, applySettings, renderAlignmentDashboard } from './ui-hud.js';
 
@@ -100,6 +102,11 @@ function getMorningHeadline(dayNum) {
   const f = s.flags || {};
   const prev = s.prevDayStats || null;
   const driftKeys = Object.keys(s.driftWords || {});
+  const MERCY_HEADLINES = [
+    '제3구역 골목 소식: 어제 창구를 통과한 손글씨 서신들이 주민들 사이에 조용히 회람',
+    '제3구역 골목 소식: 어제 창구를 통과한 손글씨 서신 한 통이 이웃집 식탁 위에 올랐다',
+    '제3구역 골목 소식: 창구를 통과한 손글씨 서신들이 밤새 여러 집을 돌아 읽혔다'
+  ];
   if (dayNum === 4 && f['D3.하준'] === 'EDIT') return '제3구역 요양소발 편지 속 "아끼다" 표현, 시민들 사이 잔잔한 반향';
   if (dayNum === 4 && f['D3.하준'] === 'PASS') return '당국, 제3구역 요양소발 미심사 서신 유출 경위 조사 착수';
   if (dayNum === 6 && ['PASS', 'SLIPPED', 'EDIT'].includes(f['D5-3'])) return '제3구역 빗속 골목서 무허가 노래 공연… 주민 수십 명 모여 합창';
@@ -112,8 +119,7 @@ function getMorningHeadline(dayNum) {
 
   if (prev && prev.day === dayNum - 1) {
     if (prev.detected > 0) return '언어관리청 내부 감사 속보: 제7창구 전일 야간 적발 ' + prev.detected + '건 보고서 접수';
-    if (prev.mercyPassed > 0) return '제3구역 골목 소식: 어제 창구를 통과한 손글씨 서신들이 주민들 사이에 조용히 회람';
-    if (prev.allCorrect && s.consecutivePerfectDays >= 2) return '경계 세관 우수 근무 기록: 제7창구 ' + s.consecutivePerfectDays + '일 연속 무결점 심사 달성';
+    if (prev.mercyPassed > 0) return MERCY_HEADLINES[(dayNum - 2) % MERCY_HEADLINES.length];
     if (prev.processed >= 4 && prev.denied / prev.processed >= 0.6) return '중앙구 우정국 "제7창구 전일 압수율 ' + Math.round((prev.denied / prev.processed) * 100) + '%… 반입 규정 준수 당부"';
   }
   if (s.S >= 50 && dayNum % 2 === 1) return '언어관리청 "경계 세관 내부 감찰 대폭 강화… 비인가 행위 엄단"';
@@ -121,6 +127,8 @@ function getMorningHeadline(dayNum) {
   if (dayNum > 1) return DAILY_CITY_HEADLINES[(dayNum - 2) % DAILY_CITY_HEADLINES.length];
   return '';
 }
+
+export { getMorningHeadline };
 
 function applyMorningIntel(dayNum, dObj) {
   const { LEX, state: s } = runtime;
@@ -155,18 +163,21 @@ function applyMorningIntel(dayNum, dObj) {
   }
 }
 
+function makeSeoyeonAdvicePhrase(q, dayNum) {
+  const { LEX } = runtime;
+  const val = LEX.trueSim(q.word, q.target).v;
+  const L = LEX.effL(q.target, dayNum, 'before', '제1구역');
+  if (val <= L - 6) return LEX.josa(q.word, '은/는') + ' ' + q.target + '의 먼 사촌이야. 걱정 마라.';
+  if (val >= L + 6) return LEX.josa(q.word, '은/는') + ' ' + LEX.josa(q.target, '이랑/랑') + ' 한 핏줄이야. 숨길 수 없어.';
+  return q.word + '… 아슬아슬하구나. 나라면 한 번 더 재 보겠다.';
+}
+
 function deliverSeoyeonNotes(dayNum) {
-  const { LEX, state: s } = runtime;
+  const { state: s } = runtime;
   const arrived = [];
   if (!Array.isArray(s.seoyeonQueue) || !s.seoyeonQueue.length) return arrived;
   s.seoyeonQueue.forEach(q => {
-    const val = LEX.trueSim(q.word, q.target).v;
-    const L = LEX.effL(q.target, dayNum, 'before', '제1구역');
-    let phrase = '';
-    if (val <= L - 6) phrase = LEX.josa(q.word, '은/는') + ' ' + q.target + '의 먼 사촌이야. 걱정 마라.';
-    else if (val >= L + 6) phrase = LEX.josa(q.word, '은/는') + ' ' + LEX.josa(q.target, '이랑/랑') + ' 한 핏줄이야. 숨길 수 없어.';
-    else phrase = q.word + '… 아슬아슬하구나. 나라면 한 번 더 재 보겠다.';
-    const note = { day: dayNum, word: q.word, text: phrase };
+    const note = { day: dayNum, word: q.word, text: makeSeoyeonAdvicePhrase(q, dayNum) };
     s.seoyeonNotes.unshift(note);
     arrived.push(note);
   });
@@ -231,7 +242,7 @@ function resolveNightAudits() {
       s.totalMercyPassed = (s.totalMercyPassed || 0) + 1;
       mercyPassed++;
       if (!Array.isArray(s.pendingMercyLetters)) s.pendingMercyLetters = [];
-      if (s.pendingMercyLetters.length < 2) {
+      if (s.pendingMercyLetters.length < 2 && !s.pendingMercyLetters.some(l => l.from === item.cargo.visitor)) {
         s.pendingMercyLetters.push({
           from: item.cargo.visitor,
           text: item.cargo.visitor + '의 쪽지: "제7창구 심사관님, 어제 눈감아 보내 주신 ' + item.cargo.kind + ' 덕분에 무사히 안부를 전했습니다. 잊지 않겠습니다."'
@@ -320,6 +331,10 @@ function resolveNightAudits() {
 
 export function openSettlement() {
   const s = runtime.state;
+  // (B) 정산 멱등성 가드 — 같은 날 두 번 실행되면 두 번째 호출은 즉시 반환한다.
+  // retryCurrentDay는 아침 저장본에서 상태를 다시 로딩하므로 가드가 리셋된다.
+  if (s.settledDay === s.day) return;
+  s.settledDay = s.day;
   s.clockRunning = false;
   if (runtime.timers.clock) clearInterval(runtime.timers.clock);
 
@@ -340,6 +355,8 @@ export function openSettlement() {
     ? GAME_CONFIG.DILIGENCE_BONUS : 0;
   const income = Math.max(0, basePay + procPay + s.dayBonus + allCorrectBonus + diligence + resBonus - s.dayFines);
   s._settleIncome = income;
+  // D30 최종 정산 표시용으로 당일 수입 내역을 저장해 둔다.
+  s._settleLines = { basePay, procPay, normalProcessed, redactProcessed, dayBonus: s.dayBonus, allCorrectBonus, diligence, resBonus, dayFines: s.dayFines };
 
   const costs = calculateDailyCosts(s.day, s.seoyeonHealth, s.medExempt, s.coldMedDue);
   let rem = s.credits + income;
@@ -377,6 +394,7 @@ export function openSettlement() {
   const canHush = s.flags['#3'] !== '신고';
   const auditActionsHtml = hasAuditHit
     ? '<div class="audit-actions-row">'
+      + '<div style="font-size:0.76rem;color:#9CB0C4;margin-bottom:6px;">※ 평정 회복 수단: 감사 적발이 있었다면 자수 소명서를 제출해 의심과 평정을 되돌릴 수 있습니다.</div>'
       + '<button id="btn-audit-confess" class="audit-action-btn">자수 소명서 (-₵' + GAME_CONFIG.AUDIT_CONFESS_COST + ' · 의심 -' + GAME_CONFIG.AUDIT_CONFESS_S_RELIEF + ' · 평정 +' + GAME_CONFIG.AUDIT_CONFESS_RATING_RELIEF + ')</button>'
       + (canHush ? '<button id="btn-audit-hush" class="audit-action-btn">암시장 기록 무마 (-₵' + GAME_CONFIG.AUDIT_HUSH_COST + ' · 의심 -' + GAME_CONFIG.AUDIT_HUSH_S_RELIEF + ' · 감봉 ₵10 환급)</button>' : '')
       + '</div>'
@@ -507,6 +525,15 @@ export function confirmSettlement() {
   const s = runtime.state;
   const dr = runtime.settleDraft;
   s.credits = s.credits + s._settleIncome - calcSettleTotalCost();
+  // D30은 퇴근 정산 뒤 바로 엔딩으로 가므로, 최종 정산 표시용 내역을 저장해 둔다.
+  if (s.day === 30 && s._settleLines) {
+    s._d30SettleSummary = Object.assign({}, s._settleLines, {
+      income: s._settleIncome,
+      costs: { rentCost: dr.rentCost, foodCost: dr.foodCost, heatCost: dr.heatCost, medCost: dr.medCost, coldCost: dr.coldCost },
+      paid: { rent: dr.payRent, food: dr.payFood, heat: dr.payHeat, med: dr.payMed, cold: dr.payCold },
+      paidTotal: calcSettleTotalCost()
+    });
+  }
   s.rentMissed = dr.payRent ? 0 : s.rentMissed + 1;
   s.foodMissed = dr.payFood ? 0 : s.foodMissed + 1;
   if (s.foodMissed >= 3) s.familyGone = true;
@@ -565,6 +592,9 @@ function buildEveningDialogueLines(d, trackRel) {
     s._todayMercyLetters.forEach(item => {
       lines.push({ s: '익명의 쪽지', t: item.text });
     });
+  }
+  if (Array.isArray(s.eveningAdviceNotes) && s.eveningAdviceNotes.length > 0) {
+    s.eveningAdviceNotes.forEach(n => lines.push({ s: '서연', t: n.text }));
   }
   if (s.familyGone) lines.push({ s: '윤희', t: '미안해… 하람이 데리고 당분간 친정에 가 있을게.' });
   else if (s.foodMissed === 2) lines.push({ s: '윤희', t: '이틀째 제대로 못 먹었더니 하람이가 기운이 없어. 허약해 보여.' });
@@ -680,16 +710,24 @@ function renderSeoyeonAdviceBox() {
       if (s.dayAdviceCount >= maxAdv) { toast('오늘은 이미 서연에게 물었습니다.', 'warn'); return; }
       const w = b.dataset.adv;
       if (s.seoyeonQueue.some(q => q.word === w)) return;
+      if (Array.isArray(s.eveningAdviceNotes) && s.eveningAdviceNotes.some(n => n.word === w)) return;
       let bestT = '자유', bestV = -1;
       getActiveTermsList().forEach(t => {
         const v = LEX.trueSim(w, t).v;
         if (v > bestV) { bestV = v; bestT = t; }
       });
-      s.seoyeonQueue.push({ word: w, target: bestT });
+      // (I) 조언 답변은 다음 날 아침이 아니라 오늘 저녁에 도착한다.
+      const phrase = makeSeoyeonAdvicePhrase({ word: w, target: bestT }, s.day);
+      const note = { day: s.day, word: w, text: phrase };
+      s.seoyeonNotes.unshift(note);
+      if (!Array.isArray(s.eveningAdviceNotes)) s.eveningAdviceNotes = [];
+      s.eveningAdviceNotes.push(note);
+      const dlg = $('evening-dialogue');
+      if (dlg) dlg.insertAdjacentHTML('beforeend', '<div class="dialogue-line"><span class="speaker-tag">서연</span>' + escapeHtml(phrase) + '</div>');
       s.dayAdviceCount++;
       b.classList.add('picked');
       if (s.dayAdviceCount >= maxAdv) wrap.querySelectorAll('button:not(.picked)').forEach(x => { x.disabled = true; });
-      toast('서연에게 「' + w + '」에 대해 물었습니다. 내일 아침 쪽지가 도착합니다.');
+      toast('서연에게 「' + w + '」에 대해 물었습니다. 오늘 저녁에 쪽지가 도착합니다.');
     });
   });
 }
@@ -777,6 +815,9 @@ export function showEnding(badge, title, desc) {
   const callbacks = buildEndingCallbacks();
   const driftSorted = Object.entries(s.driftWords || {}).sort((a, b) => (b[1].count || 0) - (a[1].count || 0));
   const topDriftTxt = driftSorted.length ? ('「' + escapeHtml(driftSorted[0][0]) + '」 ' + driftSorted[0][1].count + '회') : '없음';
+  // (H) D30 최종 정산 — 퇴근 정산을 거치지 않은 최종 화물 결정 경로에서는 여기서 계산해 표시한다.
+  // 이미 정산을 거친 경로(최종 화물 방치 후 정산)에서는 저장된 내역을 표시한다. 잔고에 한 번만 반영된다.
+  const d30SettleHtml = s.day === 30 ? renderD30SettlementHtml() : '';
   const cbHtml = callbacks.length
     ? '<div class="ending-callbacks"><div class="ending-cb-title">[30일의 여정 · 선택의 잔향]</div>'
       + callbacks.map(line => '<div>• ' + escapeHtml(line) + '</div>').join('')
@@ -792,9 +833,44 @@ export function showEnding(badge, title, desc) {
     '<div>도달 일차: <strong>D' + s.day + '</strong> · 잔고: <strong>₵' + s.credits + '</strong> · 평정: <strong>' + s.rating + '</strong></div>'
     + '<div>원문 복원(M): <strong>' + s.M + '</strong> · 은유 복원(E): <strong>' + s.E + '</strong> · 평균 보존율(Q): <strong>' + avgQ + '%</strong></div>'
     + '<div>누적 복원 사전: <strong>' + Object.keys(runtime.persistentDict).length + '건</strong> · 일반 선처 통과: <strong>' + (s.totalMercyPassed || 0) + '건</strong> · 최다 대체어: <strong>' + topDriftTxt + '</strong></div>'
+    + d30SettleHtml
     + cbHtml
     + d30ReviewHtml;
   showScreen('screen-ending');
+}
+
+function renderD30SettlementHtml() {
+  const s = runtime.state;
+  let sum = s._d30SettleSummary;
+  if (!sum) {
+    const computed = computeD30Settlement(s, runtime.DAYS_DATA[30]);
+    s.credits += computed.net;
+    sum = {
+      basePay: computed.basePay, procPay: computed.procPay, normalProcessed: computed.normalProcessed,
+      redactProcessed: computed.redactProcessed, dayBonus: computed.dayBonus,
+      allCorrectBonus: computed.allCorrectBonus, diligence: computed.diligence,
+      resBonus: computed.resBonus, dayFines: computed.dayFines,
+      income: computed.income, costs: computed.costs, paid: computed.paid, paidTotal: computed.paidTotal
+    };
+    s._d30SettleSummary = sum;
+  }
+  const costRows = [['rent', '집세', 'rentCost'], ['food', '식비', 'foodCost'], ['heat', '난방비', 'heatCost'], ['med', '서연 약값', 'medCost'], ['cold', '하람 감기약', 'coldCost']]
+    .filter(([, , ck]) => (sum.costs[ck] || 0) > 0)
+    .map(([key, label, ck]) => '<div class="settle-line"><span>' + label + (sum.paid[key] ? '' : ' (미납)') + '</span><span>' + (sum.paid[key] ? '−₵' + sum.costs[ck] : '₵0') + '</span></div>')
+    .join('');
+  return '<div style="margin-top:10px;border-top:1px dashed #435364;padding-top:8px;text-align:left;">'
+    + '<div style="font-weight:800;margin-bottom:4px;">[D30 최종 정산]</div>'
+    + '<div class="settle-line"><span>기본 일당</span><span>+₵' + sum.basePay + '</span></div>'
+    + '<div class="settle-line"><span>처리 수당 (일반 ' + sum.normalProcessed + '건' + (sum.redactProcessed > 0 ? ' · 먹칠 ' + sum.redactProcessed + '건' : '') + ')</span><span>+₵' + sum.procPay + '</span></div>'
+    + (sum.dayBonus > 0 ? '<div class="settle-line"><span>수정·급행·대조 보너스</span><span>+₵' + sum.dayBonus + '</span></div>' : '')
+    + (sum.allCorrectBonus > 0 ? '<div class="settle-line"><span>무결점 전원 일치 보너스</span><span>+₵' + sum.allCorrectBonus + '</span></div>' : '')
+    + (sum.diligence > 0 ? '<div class="settle-line"><span>성실 수당</span><span>+₵' + sum.diligence + '</span></div>' : '')
+    + (sum.resBonus > 0 ? '<div class="settle-line"><span>레지스탕스 사례금</span><span>+₵' + sum.resBonus + '</span></div>' : '')
+    + (sum.dayFines > 0 ? '<div class="settle-line neg"><span>경고 감봉</span><span>−₵' + sum.dayFines + '</span></div>' : '')
+    + '<div class="settle-line total"><span>오늘 순수입</span><span>+₵' + sum.income + '</span></div>'
+    + costRows
+    + '<div class="settle-line total"><span>최종 잔고</span><span>₵' + s.credits + '</span></div>'
+    + '</div>';
 }
 
 export function openDictModal() {

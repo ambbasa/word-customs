@@ -47,7 +47,9 @@ import {
   stampPass,
   openDenyModal,
   questionVisitor,
-  finishCurrentCargo
+  finishCurrentCargo,
+  advanceD1Guide,
+  finishD1Guide
 } from './work.js';
 
 function loadCjsModule(src, reqMap) {
@@ -102,6 +104,8 @@ function buildDayJumpButtons() {
     btn.textContent = 'D' + d;
     btn.title = runtime.DAYS_DATA[d] ? runtime.DAYS_DATA[d].title || ('D' + d) : ('D' + d);
     btn.addEventListener('click', () => {
+      // (K) 날짜 점프 확인 — 스토리와 화물을 건너뛴다는 경고를 먼저 보여준다.
+      if (!window.confirm('D' + d + '로 이동합니다. 이전 날짜의 스토리와 화물을 건너뜁니다. 계속할까요?')) return;
       const parentTitle = runtime.state.flags['부모호칭'] || '아빠';
       const prevSettings = Object.assign({}, runtime.state.settings);
       runtime.state = applyJumpPreset(createFreshState(d), d);
@@ -161,6 +165,8 @@ function bindWorkEvents() {
     $('tutorial-tip').style.display = 'none';
     runtime.state.tipActive = false;
   });
+  $('btn-d1-guide-next').addEventListener('click', advanceD1Guide);
+  $('btn-d1-guide-skip').addEventListener('click', finishD1Guide);
   $('btn-bell').addEventListener('click', callNextVisitor);
   $('btn-stamp-pass').addEventListener('click', stampPass);
   $('btn-stamp-deny').addEventListener('click', openDenyModal);

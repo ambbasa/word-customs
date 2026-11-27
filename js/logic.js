@@ -586,3 +586,40 @@ export function calculateDailyCosts(dayNum, seoyeonHealth, medExempt, coldMedDue
     coldCost: coldMedDue ? GAME_CONFIG.COLD_MED_COST : 0
   };
 }
+
+// D30 최종 정산 라인 계산 (순수 함수 — 상태 변경 없음, 호출자가 credits에 net을 반영한다).
+// 최종 화물 「사전」은 도장이 아니라 A/B/C/D 결정으로 처리되므로, 처리율 분모는 최종 화물을 제외한 대기열 기준이다.
+// 전원 보너스·성실 수당은 사용자의 비례 규칙과 같은 임계값을 쓴다(전원 90%·성실 50%).
+export function computeD30Settlement(s, dayData) {
+  const cargos = (dayData && dayData.cargos) || [];
+  const total = cargos.length;
+  const processable = Math.max(1, total - 1);
+  const processedRate = (s.dayProcessed || 0) / processable;
+  const allCorrect = (s.dayReviewLog || []).length > 0 && (s.dayReviewLog || []).every(r => r.ok);
+  const allCorrectBonus = (allCorrect && (s.dayProcessed || 0) > 0 && processedRate >= GAME_CONFIG.ALL_CORRECT_MIN_RATIO) ? GAME_CONFIG.ALL_CORRECT_BONUS : 0;
+  const diligence = (s.rating >= GAME_CONFIG.DILIGENCE_RATING_MIN && processedRate >= GAME_CONFIG.DILIGENCE_MIN_RATIO) ? GAME_CONFIG.DILIGENCE_BONUS : 0;
+  const resBonus = (s.T >= GAME_CONFIG.RESISTANCE_TRUST_MIN && (s.prevResPassed || 0) > 0)
+    ? (s.prevResPassed * GAME_CONFIG.RESISTANCE_BONUS_PER_CARGO) : 0;
+  const redactProcessed = s.dayRedactedCount || 0;
+  const normalProcessed = Math.max(0, (s.dayProcessed || 0) - redactProcessed);
+  const procPay = normalProcessed * GAME_CONFIG.PROC_PAY_NORMAL + redactProcessed * GAME_CONFIG.PROC_PAY_REDACT;
+  const dayFines = s.dayFines || 0;
+  const income = Math.max(0, GAME_CONFIG.BASE_PAY + procPay + (s.dayBonus || 0) + allCorrectBonus + diligence + resBonus - dayFines);
+  const costs = calculateDailyCosts(30, s.seoyeonHealth, s.medExempt, s.coldMedDue);
+  let rem = (s.credits || 0) + income;
+  const paid = {};
+  let paidTotal = 0;
+  for (const [key, costKey] of [['rent', 'rentCost'], ['food', 'foodCost'], ['heat', 'heatCost'], ['med', 'medCost'], ['cold', 'coldCost']]) {
+    const c = costs[costKey] || 0;
+    if (c > 0 && rem >= c) { rem -= c; paid[key] = true; paidTotal += c; }
+    else paid[key] = false;
+  }
+  return {
+    basePay: GAME_CONFIG.BASE_PAY,
+    procPay, normalProcessed, redactProcessed,
+    dayBonus: s.dayBonus || 0,
+    allCorrectBonus, diligence, resBonus, dayFines,
+    income, costs, paid, paidTotal,
+    net: income - paidTotal
+  };
+}

@@ -259,4 +259,71 @@ test('Playtest 7-item package: hints, rich endings, callbacks, JSON notices & cl
   assert.equal(config.getMeterSpec(3).fineCost, 12);
 });
 
+test('Night exploit rules use proportional thresholds (90% all-correct, 50% diligence)', () => {
+  assert.equal(config.GAME_CONFIG.ALL_CORRECT_MIN_RATIO, 0.9, 'All-correct bonus needs 90% processed');
+  assert.equal(config.GAME_CONFIG.DILIGENCE_MIN_RATIO, 0.5, 'Diligence needs 50% processed');
+  assert.equal(config.GAME_CONFIG.SURGE_MAX_UNPROCESSED, 4);
+});
+
+test('A1 (모범 심사관) branches its description on family state', () => {
+  runtime.state = applyJumpPreset(createFreshState(30), 30);
+  runtime.state.M = 3;
+  runtime.state.rating = 90;
+  runtime.state.familyGone = false;
+  runtime.state.seoyeonHealth = '보통';
+  const intact = logic.resolveEndingDecision('A');
+  assert.equal(intact.id, 'A1');
+  assert(!intact.desc.includes('텅 비어'), 'Intact family should not mention the empty house');
+
+  runtime.state.familyGone = true;
+  const gone = logic.resolveEndingDecision('A');
+  assert.equal(gone.id, 'A1', 'Family gone still earns A1, with a different description');
+  assert(gone.desc.includes('텅 비어'), 'Family-gone A1 should mention the empty house');
+  runtime.state.familyGone = false;
+  runtime.state.seoyeonHealth = '사망';
+  const dead = logic.resolveEndingDecision('A');
+  assert.equal(dead.id, 'A1');
+  assert(dead.desc.includes('빈자리'), 'Seoyeon-dead A1 should mention her empty seat');
+});
+
+test('D30 settlement lines reuse the settlement income formula', () => {
+  const day30 = runtime.DAYS_DATA[30];
+  assert.equal(day30.cargos.length, 9);
+  const okLog = Array.from({ length: 8 }, (_, i) => ({ visitor: 'v' + i, action: '통과', expected: '적법', ok: true }));
+  const full = {
+    dayProcessed: 8, dayRedactedCount: 0, dayReviewLog: okLog, queueIndex: 8,
+    rating: 85, T: 20, prevResPassed: 0, dayBonus: 5, dayFines: 0,
+    credits: 100, seoyeonHealth: '보통', medExempt: false, coldMedDue: false
+  };
+  const res = logic.computeD30Settlement(full, day30);
+  assert.equal(res.allCorrectBonus, 5, 'Full non-final queue processed should pay the bonus');
+  assert.equal(res.diligence, 10, 'Rating 85 with 8/9 processed should pay diligence');
+  assert.equal(res.income, 70, '10 base + 40 proc + 5 bonus + 5 all-correct + 10 diligence');
+  assert.equal(res.costs.rentCost, 30);
+  assert.equal(res.paidTotal, 75, '30 rent + 15 food + 10 heat + 20 med');
+  assert.equal(res.net, -5);
+
+  const partial = {
+    ...full, dayProcessed: 5, dayReviewLog: okLog.slice(0, 5), queueIndex: 5, dayBonus: 0
+  };
+  const res2 = logic.computeD30Settlement(partial, day30);
+  assert.equal(res2.allCorrectBonus, 0, '5/8 processable is under the 90% all-correct quota');
+  assert.equal(res2.diligence, 10, '5/8 processable clears the 50% diligence gate');
+  assert.equal(res2.income, 45, '10 base + 25 proc + 10 diligence');
+});
+
+test('Mercy headline rotates across 3 variants by day', async () => {
+  const dayCycle = await import('../js/day-cycle.js');
+  const seen = new Set();
+  for (const dayNum of [2, 3, 4]) {
+    runtime.state = createFreshState(dayNum);
+    runtime.state.prevDayStats = { day: dayNum - 1, mercyPassed: 2, detected: 0, processed: 8, denied: 0, passed: 8, edited: 0, warnings: 0, allCorrect: true };
+    runtime.state.consecutivePerfectDays = 0;
+    runtime.state.S = 0;
+    runtime.state.driftWords = {};
+    seen.add(dayCycle.getMorningHeadline(dayNum));
+  }
+  assert.equal(seen.size, 3, 'Mercy headline should rotate through 3 variants, got: ' + [...seen].join(' | '));
+});
+
 console.log(`\nALL ${passed} TESTS PASSED!`);

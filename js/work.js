@@ -122,6 +122,61 @@ export function startWorkShift() {
   startClockLoop();
 }
 
+// (G) D1 첫 화물 단계별 가이드 — 블로킹하지 않고 [다음]/[건너뛰기]로 건너뛸 수 있다.
+// D1에는 측정기가 잠겨 있으므로(D2 지급) 측정 단계는 안내만 하고 도장 단계로 이어진다.
+const D1_GUIDE_STEPS = [
+  '① 본문에서 의심스러운 낱말을 클릭하세요. (예: 「자유롭다」 — 공문 공개 예시에 나온 위반어입니다)',
+  '② 칩을 확인하세요. 기본값 AUTO가 가장 위험한 통제어를 자동으로 골라줍니다. (측정기는 D2부터 지급됩니다)',
+  '③ 오늘은 측정기가 없습니다. 공문 공개 예시와 규칙집 1등급 통제어를 보고 판단하세요.',
+  '④ 사유를 고르고 도장을 찍으세요. 통과 1번 · 압수 2번 키로도 찍을 수 있습니다.'
+];
+
+const D1_GUIDE_HIGHLIGHTS = [
+  ['cargo-paper'],
+  ['meter-row'],
+  ['rulebook-col'],
+  ['btn-stamp-pass', 'btn-stamp-deny']
+];
+
+function updateD1GuideHighlight() {
+  document.querySelectorAll('.guide-highlight').forEach(el => el.classList.remove('guide-highlight'));
+  const s = runtime.state;
+  if (!s.tutorialStep || s.tutorialStep < 1 || s.tutorialStep > D1_GUIDE_STEPS.length) return;
+  (D1_GUIDE_HIGHLIGHTS[s.tutorialStep - 1] || []).forEach(id => {
+    const el = $(id);
+    if (el) el.classList.add('guide-highlight');
+  });
+}
+
+export function showD1Guide() {
+  const s = runtime.state;
+  const box = $('d1-guide');
+  const txt = $('d1-guide-text');
+  if (!box || !txt) return;
+  if (!s.tutorialStep || s.tutorialStep < 1 || s.tutorialStep > D1_GUIDE_STEPS.length) { box.style.display = 'none'; return; }
+  txt.textContent = D1_GUIDE_STEPS[s.tutorialStep - 1] + ' (' + s.tutorialStep + '/' + D1_GUIDE_STEPS.length + ')';
+  $('btn-d1-guide-next').textContent = s.tutorialStep >= D1_GUIDE_STEPS.length ? '완료' : '다음';
+  box.style.display = 'flex';
+  updateD1GuideHighlight();
+}
+
+export function advanceD1Guide() {
+  const s = runtime.state;
+  if (!s.tutorialStep) return;
+  if (s.tutorialStep >= D1_GUIDE_STEPS.length) { finishD1Guide(); return; }
+  s.tutorialStep++;
+  showD1Guide();
+}
+
+export function finishD1Guide() {
+  const s = runtime.state;
+  s.tutorialStep = 0;
+  s.tutorialDone = true;
+  document.querySelectorAll('.guide-highlight').forEach(el => el.classList.remove('guide-highlight'));
+  const box = $('d1-guide');
+  if (box) box.style.display = 'none';
+}
+
 function renderDeskKeepsakes() {
   const tray = $('desk-keepsakes');
   if (!tray) return;
@@ -344,6 +399,13 @@ export function callNextVisitor() {
   renderMeterDial(null, LEX.effL(dialTerm, s.day, cargo._phase, cargo.origin), LEX.baseL(dialTerm, s.day, cargo._phase));
   updateWorkHUD();
   updateToolButtons();
+
+  // (G) D1 첫 화물 가이드 — 첫 화물이 도착하면 바로 보여준다. (봉투를 열기 전이라
+  // cargo-paper 하이라이트는 아직 적용되지 않고, 봉투를 열면 renderDeskCargo에서 다시 적용된다.)
+  if (s.day === 1 && s.queueIndex === 0 && !s.tutorialDone && s.tutorialStep === 0) {
+    s.tutorialStep = 1;
+    showD1Guide();
+  }
 
   if (s.settings && s.settings.quickFlow && !s.tipActive) {
     setTimeout(() => {
@@ -618,6 +680,13 @@ export function renderDeskCargo() {
   const s = runtime.state;
   const c = s.currentCargo;
   if (!c) return;
+  // (G) D1 첫 화물 가이드 — 첫 화물이 책상에 오르면 시작하고, 도장을 찍으면 끝난다.
+  if (s.day === 1 && s.queueIndex === 0 && !s.tutorialDone) {
+    if (s.tutorialStep === 0) { s.tutorialStep = 1; showD1Guide(); }
+    else if (s.tutorialStep === 4 && s.stamped) finishD1Guide();
+  } else if (s.tutorialStep > 0) {
+    finishD1Guide();
+  }
   const surf = $('desk-surface');
   surf.classList.toggle('compare-active', s.compareMode);
 
@@ -735,6 +804,7 @@ function runR15QuickScan(c) {
 function selectProbeWord(raw) {
   const s = runtime.state;
   s.probeWord = raw;
+  if (s.tutorialStep === 1) { s.tutorialStep = 2; showD1Guide(); }
   if ($('meter-direct-input')) $('meter-direct-input').value = '';
   $('meter-probe').textContent = runtime.LEX.lemmaOf(raw);
   const best = findBestTargetForWord(raw, s.currentCargo);
@@ -745,6 +815,7 @@ function selectProbeWord(raw) {
 
 export function runMeasurement(mode, overrideWord) {
   const { LEX, state: s } = runtime;
+  if (s.tutorialStep === 2) { s.tutorialStep = 3; showD1Guide(); }
   if (s.day < 2) {
     SFX.nullBeep();
     toast('측정기는 D2부터 지급됩니다. 오늘은 공문과 규칙집의 1등급 통제어를 확인하세요.', 'warn');
@@ -810,7 +881,7 @@ export function runMeasurement(mode, overrideWord) {
       : (res.max < effLVal
           ? '범위 전체가 경계선 미만'
           : (mode === 'fine'
-              ? '정밀 측정도 경계선 걸침 — 공문 공개 예시나 저녁 서연 조언을 확인하세요'
+              ? '정밀 측정으로도 가려지지 않습니다. 서연에게 물어보거나(저녁), 당신의 판단으로 찍으세요.'
               : '범위가 경계선에 걸침 (정밀 측정 권장)'));
     const autoPrefix = isAuto ? ('[' + targetKey + '] ') : '';
     $('meter-val-short').textContent = res.displayed + ' ±' + res.err;
