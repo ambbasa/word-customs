@@ -129,8 +129,8 @@ function buildDayJumpButtons() {
       const dayTitle = runtime.DAYS_DATA[d] ? (runtime.DAYS_DATA[d].title || '') : '';
       const ok = await confirmModal({
         title: '챕터 점프 · D' + d,
-        body: '<span class="confirm-target">D' + d + ' ' + escapeHtml(dayTitle) + '</span>로 이동합니다.<br>이전 날짜의 스토리와 화물을 건너뜁니다.'
-          + '<span class="confirm-note">이동하면 D' + d + ' 아침 공문부터 시작합니다. 돌아올 수 없습니다.</span>',
+        body: '<span class="confirm-target">D' + d + (dayTitle ? ' · ' + escapeHtml(dayTitle) : '') + '</span> 날짜로 이동합니다.<br>이전 날짜의 스토리와 화물을 건너뜁니다.'
+          + '<span class="confirm-note">이동하면 D' + d + ' 아침 공문부터 시작하며, 되돌릴 수 없습니다.</span>',
         okLabel: 'D' + d + '로 이동',
         cancelLabel: '취소'
       });
