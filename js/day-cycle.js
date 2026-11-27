@@ -33,7 +33,10 @@ import {
   calculateDailyCosts,
   buildEndingCallbacks,
   isD30FinalCargo,
-  computeD30Settlement
+  computeD30Settlement,
+  auditHitSIncrease,
+  isNonRedactAllCorrect,
+  isPerfectDayForRecovery
 } from './logic.js';
 import { $, showScreen, toast, applySettings, renderAlignmentDashboard } from './ui-hud.js';
 import { playCutscene, getEveningCutscene, renderTypedDialogue } from './cutscene.js';
@@ -272,7 +275,7 @@ function resolveNightAudits() {
     if (item.detected) {
       detectedCount++;
       addWarning('야간 감사 적발 (' + item.cargo.visitor + ')');
-      s.S = Math.min(100, s.S + (item.grade === 1 ? 12 : (item.grade === 2 ? 8 : 5)));
+      s.S = Math.min(100, s.S + auditHitSIncrease(item.grade, s.day));
       caughtLogs.push('• [적발] ' + escapeHtml(item.cargo.visitor) + ' 화물 → 경고');
       if (item.cargo.resistance) s.T = Math.min(100, s.T + 1);
     } else if (item.cargo.memory) {
@@ -332,12 +335,14 @@ function resolveNightAudits() {
   const meetsAllCorrectQuota = SURGE_DAYS.has(s.day)
     ? (remainingQ < GAME_CONFIG.SURGE_MAX_UNPROCESSED)
     : (processedRatio >= GAME_CONFIG.ALL_CORRECT_MIN_RATIO);
-  const allCorrect = hasProcessed && meetsAllCorrectQuota && s.dayReviewLog.length > 0 && s.dayReviewLog.every(r => r.ok);
+  const allCorrect = hasProcessed && meetsAllCorrectQuota && isNonRedactAllCorrect(s.dayReviewLog);
   let streakRecovery = 0;
   let streakSRelief = 0;
   let allCorrectBonus = 0;
 
-  if (detectedCount === 0 && s.dayWarnings === 0 && hasProcessed) {
+  // P1-2: 사유 오기입 경고는 경고·감봉은 그대로 두되, 회복 차단에서는 제외한다.
+  const reasonErrorCount = (s.dayWrongDenyReasons || []).length;
+  if (isPerfectDayForRecovery({ detectedCount, dayWarnings: s.dayWarnings, reasonErrorCount, hasProcessed })) {
     s.consecutivePerfectDays = (s.consecutivePerfectDays || 0) + 1;
     const baseRecovery = Math.min(6, s.consecutivePerfectDays * 2);
     streakRecovery = Math.round(baseRecovery * processedRatio);
@@ -429,6 +434,9 @@ export function openSettlement() {
     + '<div class="settle-line total"><span>오늘 순수입</span><span>+₵' + income + '</span></div>';
 
   const sClue = s.S >= 70 ? '※ 집 앞에 낯선 차가 세워져 있다.' : (s.S >= 50 ? '※ 감찰관이 창구 앞에서 한참을 멈춰 서 있었다.' : (s.S >= 30 ? '※ 퇴근길, 국장이 당신을 한 번 더 오래 쳐다보았다.' : ''));
+  // P1-5: 정산 화면에 현재 의심(S) 수치를 직접 표시한다 — 평정이 멀쩡한데 S만 차서 갑자기 해고되는 것을 막기 위해.
+  const sBand = s.S >= 70 ? '해고 임박' : (s.S >= 50 ? '위험' : (s.S >= 30 ? '주의' : '안전'));
+  const sColor = s.S >= 70 ? 'var(--stamp-deny)' : (s.S >= 50 ? '#D98E32' : 'inherit');
   const instantTxt = s.dayInstantCaught > 0 ? (' · 근무 중 즉시 적발 ' + s.dayInstantCaught + '건') : '';
   const auditHeader = sampleCount === 0
     ? ('[야간 표본 감사 보고] 야간 대상 없음 (적발 0건' + instantTxt + ')')
@@ -452,6 +460,7 @@ export function openSettlement() {
     : '';
   $('settle-audit').innerHTML =
     '<div style="font-weight:800;margin-bottom:4px;">' + auditHeader + '</div>'
+    + '<div style="margin-top:2px;font-weight:800;color:' + sColor + ';">현재 의심(S): ' + s.S + '/100 · ' + sBand + '</div>'
     + (caughtLogs.length ? caughtLogs.join('<br>') : '적발된 건이 없습니다.')
     + (sClue ? '<div style="margin-top:6px;color:var(--stamp-deny);">' + sClue + '</div>' : '')
     + auditActionsHtml

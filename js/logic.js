@@ -633,6 +633,29 @@ export function calculateDailyCosts(dayNum, seoyeonHealth, medExempt, coldMedDue
   };
 }
 
+// 야간 감사 적발 1건당 의심(S) 상승폭 — 9차 P1-1: 3막만 +8~12 범위로 완화한다.
+// 1·2막은 기존 등급별 12/8/5를 유지한다. 3막은 등급 1 → 10, 등급 2 → 9, 등급 3 → 8로 압축한다.
+// (기존 12/8/5는 막과 무관한 등급별 값이라, 9차에서 관측된 3막 +12~18은 하루 다건 적발 + 타 가산이 겹친 값이다.
+//  3막 상한을 12→10으로 내리는 것이 엄격 루트의 하루 다건 적발 부담을 직접 낮춘다. 등급 순서는 유지한다.)
+export function auditHitSIncrease(grade, dayNum) {
+  const d = dayNum || runtime.state.day || 1;
+  if (d >= 21) return grade === 1 ? 10 : (grade === 2 ? 9 : 8);
+  return grade === 1 ? 12 : (grade === 2 ? 8 : 5);
+}
+
+// 전원 정답 판정 — 9차 먹칠 결정: 먹칠(삭제) 건은 전원 보너스 대상에서 제외한다.
+// 먹칠이 아닌 화물의 복기가 전건 ok이고, 먹칠이 아닌 건이 1건 이상일 때만 true.
+// (먹칠만 한 날은 비먹칠 건이 0건이라 false — 보너스 없음.)
+export function isNonRedactAllCorrect(dayReviewLog) {
+  const entries = (dayReviewLog || []).filter(r => !String(r.action || '').startsWith('먹칠'));
+  return entries.length > 0 && entries.every(r => r.ok);
+}
+
+// 무경고 스트릭 회복 판정 — 9차 P1-2: 사유 코드만 틀린 경고는 회복을 막지 않는다(경고·감봉은 유지).
+export function isPerfectDayForRecovery({ detectedCount, dayWarnings, reasonErrorCount, hasProcessed }) {
+  return detectedCount === 0 && (dayWarnings - (reasonErrorCount || 0)) <= 0 && !!hasProcessed;
+}
+
 // D30 최종 정산 라인 계산 (순수 함수 — 상태 변경 없음, 호출자가 credits에 net을 반영한다).
 // 최종 화물 「사전」은 도장이 아니라 A/B/C/D 결정으로 처리되므로, 처리율 분모는 최종 화물을 제외한 대기열 기준이다.
 // 전원 보너스·성실 수당은 사용자의 비례 규칙과 같은 임계값을 쓴다(전원 90%·성실 50%).
@@ -641,7 +664,7 @@ export function computeD30Settlement(s, dayData) {
   const total = cargos.length;
   const processable = Math.max(1, total - 1);
   const processedRate = (s.dayProcessed || 0) / processable;
-  const allCorrect = (s.dayReviewLog || []).length > 0 && (s.dayReviewLog || []).every(r => r.ok);
+  const allCorrect = isNonRedactAllCorrect(s.dayReviewLog);
   const allCorrectBonus = (allCorrect && (s.dayProcessed || 0) > 0 && processedRate >= GAME_CONFIG.ALL_CORRECT_MIN_RATIO) ? GAME_CONFIG.ALL_CORRECT_BONUS : 0;
   const diligence = (s.rating >= GAME_CONFIG.DILIGENCE_RATING_MIN && processedRate >= GAME_CONFIG.DILIGENCE_MIN_RATIO) ? GAME_CONFIG.DILIGENCE_BONUS : 0;
   const resBonus = (s.T >= GAME_CONFIG.RESISTANCE_TRUST_MIN && (s.prevResPassed || 0) > 0)

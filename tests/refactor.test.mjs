@@ -480,6 +480,89 @@ test('Two-layer measurement metadata: controlled / registry / estimated', () => 
   assert.equal(logic.isValidOpenKoreanWord('뭉게구름'), true, 'Unregistered but well-formed words are accepted as edit replacements');
 });
 
+test('Round 9 P1-1: audit S weight softened in act 3 only (10/9/8), acts 1-2 unchanged (12/8/5)', () => {
+  assert.equal(logic.auditHitSIncrease(1, 5), 12);
+  assert.equal(logic.auditHitSIncrease(2, 10), 8);
+  assert.equal(logic.auditHitSIncrease(3, 15), 5);
+  assert.equal(logic.auditHitSIncrease(1, 20), 12, 'D20 is still act 2');
+  assert.equal(logic.auditHitSIncrease(2, 20), 8);
+  assert.equal(logic.auditHitSIncrease(3, 20), 5);
+  assert.equal(logic.auditHitSIncrease(1, 21), 10, 'Act-3 grade 1 drops 12 -> 10 (the worst case comes down)');
+  assert.equal(logic.auditHitSIncrease(2, 21), 9);
+  assert.equal(logic.auditHitSIncrease(3, 25), 8);
+  // 3막 1건당 상승폭은 8~12 범위 안에 든다 (9차 관측 +12~18에서 완화).
+  for (const d of [21, 25, 30]) for (const g of [1, 2, 3]) {
+    const v = logic.auditHitSIncrease(g, d);
+    assert(v >= 8 && v <= 12, `Act-3 hit must be 8..12, got ${v} (grade ${g}, D${d})`);
+  }
+});
+
+test('Round 9 redact decision: all-correct bonus excludes redact entries', () => {
+  const ok = (a) => ({ visitor: 'v', action: a, expected: 'x', ok: true });
+  const bad = (a) => ({ visitor: 'v', action: a, expected: 'x', ok: false });
+  assert.equal(logic.isNonRedactAllCorrect([ok('통과'), ok('압수(R01)')]), true);
+  assert.equal(logic.isNonRedactAllCorrect([ok('먹칠(삭제)'), ok('먹칠(삭제)')]), false, 'Redact-only day earns no bonus');
+  assert.equal(logic.isNonRedactAllCorrect([ok('통과'), ok('먹칠(삭제)')]), true, 'Mixed day with all non-redact ok still earns it');
+  assert.equal(logic.isNonRedactAllCorrect([ok('통과'), bad('압수(R02)')]), false);
+  assert.equal(logic.isNonRedactAllCorrect([ok('통과'), bad('먹칠(누락)')]), true, 'A failed redact does not block the non-redact verdict');
+  assert.equal(logic.isNonRedactAllCorrect([]), false);
+  assert.equal(logic.isNonRedactAllCorrect(null), false);
+});
+
+test('Round 9 P1-2: reason-code-only warnings do not block streak recovery', () => {
+  const base = { detectedCount: 0, dayWarnings: 0, reasonErrorCount: 0, hasProcessed: true };
+  assert.equal(logic.isPerfectDayForRecovery(base), true);
+  assert.equal(logic.isPerfectDayForRecovery({ ...base, dayWarnings: 1, reasonErrorCount: 1 }), true, 'Reason-error-only day still recovers');
+  assert.equal(logic.isPerfectDayForRecovery({ ...base, dayWarnings: 2, reasonErrorCount: 1 }), false, 'A second real warning still blocks');
+  assert.equal(logic.isPerfectDayForRecovery({ ...base, dayWarnings: 1, reasonErrorCount: 0 }), false);
+  assert.equal(logic.isPerfectDayForRecovery({ ...base, detectedCount: 1 }), false);
+  assert.equal(logic.isPerfectDayForRecovery({ ...base, hasProcessed: false }), false);
+});
+
+test('Round 9 D30 settlement: redact-only day pays no all-correct bonus, mixed day does', () => {
+  const day30 = runtime.DAYS_DATA[30];
+  const mk = (action, ok) => ({ visitor: 'v', action, expected: 'x', ok });
+  const redactOnly = {
+    dayProcessed: 8, dayRedactedCount: 8,
+    dayReviewLog: Array.from({ length: 8 }, () => mk('먹칠(삭제)', true)),
+    rating: 85, T: 20, prevResPassed: 0, dayBonus: 5, dayFines: 0,
+    credits: 100, seoyeonHealth: '보통', medExempt: false, coldMedDue: false
+  };
+  const r1 = logic.computeD30Settlement(redactOnly, day30);
+  assert.equal(r1.allCorrectBonus, 0, 'Redact-only D30 earns no all-correct bonus');
+  assert.equal(r1.income, 41, '10 base + 16 redact proc + 5 bonus + 10 diligence, no all-correct');
+  const mixed = {
+    ...redactOnly, dayRedactedCount: 1,
+    dayReviewLog: [...Array.from({ length: 7 }, () => mk('통과', true)), mk('먹칠(삭제)', true)]
+  };
+  const r2 = logic.computeD30Settlement(mixed, day30);
+  assert.equal(r2.allCorrectBonus, 5, 'Mixed day with all non-redact ok still earns the bonus');
+  assert.equal(r2.income, 67, '10 base + 37 proc + 5 bonus + 5 all-correct + 10 diligence');
+});
+
+test('Round 9 P1-3: meter prices in notices match config (Lv2 45 / Lv3 90)', () => {
+  assert.equal(config.GAME_CONFIG.UPGRADE_LV2_COST, 45);
+  assert.equal(config.GAME_CONFIG.UPGRADE_LV3_COST, 90);
+  const d08 = JSON.stringify(runtime.DAYS_DATA[8]);
+  const d18 = JSON.stringify(runtime.DAYS_DATA[18]);
+  assert(d08.includes('₵45'), 'D08 notice must quote the real Lv2 price 45');
+  assert(!d08.includes('₵60'), 'D08 notice must not keep the stale 60 price');
+  assert(d18.includes('₵90'), 'D18 notice must quote the real Lv3 price 90');
+  assert(!d18.includes('₵60'), 'D18 notice must not keep the stale 60 price');
+  for (let d = 1; d <= 30; d++) {
+    const raw = JSON.stringify(runtime.DAYS_DATA[d]);
+    assert(!raw.includes('₵60'), `Stale 60 meter price in D${String(d).padStart(2, '0')}.json`);
+  }
+});
+
+test('Round 9 P1-4: notice-section sets an explicit ink color (readable in the dark-themed revision modal)', () => {
+  const css = fs.readFileSync(path.join(root, 'css/styles.css'), 'utf8');
+  const m = css.match(/\.notice-section\s*\{([^}]*)\}/);
+  assert(m, '.notice-section rule must exist');
+  assert(m[1].includes('color:'), '.notice-section must declare a text color, otherwise it inherits the modal light text on a light background');
+  assert(m[1].includes('var(--ink)'), '.notice-section text should be the dark ink color');
+});
+
 test('D2/D28 notice wording fixes', () => {
   const d2 = runtime.DAYS_DATA[2];
   assert(d2.noticeItems[1].includes('정식 운용'), 'D2 notice should say 정식 운용, not 지급');

@@ -191,6 +191,7 @@ button:disabled { opacity: 0.42; cursor: not-allowed; }
 .notice-section {
   background: #F7F1E2; border-left: 3px solid var(--ink);
   padding: 9px 13px; margin: 9px 0;
+  color: var(--ink); /* 9차 P1-4: 개정 공문 모달(.modal-box)이 다크 테마로 오버라이드돼도 본문은 짙은 잉크색으로 읽힌다 */
 }
 .notice-example {
   font-family: var(--font-ui); font-size: 0.84rem; font-weight: 700;
