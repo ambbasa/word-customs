@@ -37,6 +37,7 @@ import {
   getMeasuredValue,
   findBestTargetForWord,
   getPreservationPreview,
+  redactSafeSummary,
   resolveCargoVariants,
   resolveEndingDecision,
   isLinguistActive,
@@ -1437,7 +1438,7 @@ function commitRedactStamp() {
   } else {
     if (c.resistance) s.T = Math.max(0, s.T - 2);
     s.dayReviewLog.push({ visitor: c.visitor, action: '먹칠(삭제)', expected: ev.violations.map(v => v.rule + ':' + v.word).join(', '), ok: true });
-    s.stamped = { type: 'redact', summary: '먹칠 검열 완료 (+₵2 · 안전 통과, 보너스·기억 복원 없음)' };
+    s.stamped = { type: 'redact', summary: redactSafeSummary(!!c.resistance) };
     $('visitor-speech').textContent = '"…중요한 말이 까맣게 지워졌네요. 그래도 편지는 전해 주시니 고맙습니다."';
   }
 

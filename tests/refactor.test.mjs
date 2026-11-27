@@ -509,6 +509,15 @@ test('Round 9 redact decision: all-correct bonus excludes redact entries', () =>
   assert.equal(logic.isNonRedactAllCorrect(null), false);
 });
 
+test('Option B / P2-8: redact safe-pass summary names the trust cost only for resistance cargo', () => {
+  const res = logic.redactSafeSummary(true);
+  assert(res.includes('지하 신뢰 −2'), 'Resistance redact summary must name the trust -2 cost');
+  assert(res.includes('안전 통과') && res.includes('보너스·기억 복원 없음'), 'Base summary text is kept');
+  const normal = logic.redactSafeSummary(false);
+  assert(!normal.includes('지하 신뢰'), 'Non-resistance redact must not mention trust');
+  assert.equal(normal, '먹칠 검열 완료 (+₵2 · 안전 통과, 보너스·기억 복원 없음)', 'Non-resistance summary is unchanged');
+});
+
 test('Round 9 P1-2: reason-code-only warnings do not block streak recovery', () => {
   const base = { detectedCount: 0, dayWarnings: 0, reasonErrorCount: 0, hasProcessed: true };
   assert.equal(logic.isPerfectDayForRecovery(base), true);

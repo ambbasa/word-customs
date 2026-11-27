@@ -646,6 +646,12 @@ export function auditHitSIncrease(grade, dayNum) {
 // 전원 정답 판정 — 9차 먹칠 결정: 먹칠(삭제) 건은 전원 보너스 대상에서 제외한다.
 // 먹칠이 아닌 화물의 복기가 전건 ok이고, 먹칠이 아닌 건이 1건 이상일 때만 true.
 // (먹칠만 한 날은 비먹칠 건이 0건이라 false — 보너스 없음.)
+// 먹칠 안전 통과 커밋 요약 — P2-8 (안 B): 저항 화물 먹칠 시 지하 신뢰 −2를 명시한다.
+// 일반 먹칠 화물에는 신뢰 문구가 붙지 않는다.
+export function redactSafeSummary(isResistance) {
+  return '먹칠 검열 완료 (+₵2 · 안전 통과, 보너스·기억 복원 없음' + (isResistance ? ' · 지하 신뢰 −2' : '') + ')';
+}
+
 export function isNonRedactAllCorrect(dayReviewLog) {
   const entries = (dayReviewLog || []).filter(r => !String(r.action || '').startsWith('먹칠'));
   return entries.length > 0 && entries.every(r => r.ok);
