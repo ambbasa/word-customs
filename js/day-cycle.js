@@ -258,28 +258,46 @@ function resolveNightAudits() {
   s.dayWrongDenyReasons.forEach(msg => { addWarning(msg); caughtLogs.push('• [경고] ' + escapeHtml(msg)); });
   s.dayComplaints.forEach(msg => { addWarning(msg); caughtLogs.push('• [민원] ' + escapeHtml(msg)); });
 
-  const allCorrect = s.dayReviewLog.length > 0 && s.dayReviewLog.every(r => r.ok);
+  // 보완 1: 봉투를 열어본 화물을 도장 없이 방치한 경우 직무 유기 경고 1건 (의심 추가 없음)
+  if (s.currentCargo && s.envelopeOpened && !s.stamped) {
+    const msg = '개봉 화물 미결 방치 (' + s.currentCargo.visitor + ')';
+    addWarning(msg);
+    caughtLogs.push('• [경고] ' + escapeHtml(msg));
+  }
+
+  // 폭주일 미처리 경고를 스트릭·보너스 판정보다 먼저 처리
+  const d = runtime.DAYS_DATA[s.day];
+  const totalCargos = (d.cargos || []).length;
+  const remainingQ = Math.max(0, totalCargos - s.queueIndex);
+  const processedRatio = totalCargos > 0 ? Math.min(1, s.dayProcessed / totalCargos) : 0;
+  if (SURGE_DAYS.has(s.day) && remainingQ >= GAME_CONFIG.SURGE_MAX_UNPROCESSED) {
+    addWarning('대기열 폭주 미처리 ' + remainingQ + '명 잔류');
+    caughtLogs.push('• [경고] 대기열 폭주 미처리 ' + remainingQ + '명');
+  }
+
+  // 보완 2·3: 0건 태업 차단, 처리율 비례 스트릭 회복, 전원 정답은 90% 이상(폭주일 예외)
+  const hasProcessed = s.dayProcessed > 0;
+  const meetsAllCorrectQuota = SURGE_DAYS.has(s.day)
+    ? (remainingQ < GAME_CONFIG.SURGE_MAX_UNPROCESSED)
+    : (processedRatio >= GAME_CONFIG.ALL_CORRECT_MIN_RATIO);
+  const allCorrect = hasProcessed && meetsAllCorrectQuota && s.dayReviewLog.length > 0 && s.dayReviewLog.every(r => r.ok);
   let streakRecovery = 0;
+  let streakSRelief = 0;
   let allCorrectBonus = 0;
 
-  if (detectedCount === 0 && s.dayWarnings === 0) {
+  if (detectedCount === 0 && s.dayWarnings === 0 && hasProcessed) {
     s.consecutivePerfectDays = (s.consecutivePerfectDays || 0) + 1;
-    streakRecovery = Math.min(6, s.consecutivePerfectDays * 2);
-    s.rating = Math.min(100, s.rating + streakRecovery);
-    s.S = Math.max(0, s.S - 2);
+    const baseRecovery = Math.min(6, s.consecutivePerfectDays * 2);
+    streakRecovery = Math.round(baseRecovery * processedRatio);
+    if (streakRecovery > 0) s.rating = Math.min(100, s.rating + streakRecovery);
+    streakSRelief = processedRatio >= GAME_CONFIG.DILIGENCE_MIN_RATIO ? 2 : (processedRatio >= 0.25 ? 1 : 0);
+    if (streakSRelief > 0) s.S = Math.max(0, s.S - streakSRelief);
     if (allCorrect) {
       allCorrectBonus = GAME_CONFIG.ALL_CORRECT_BONUS;
       s.rating = Math.min(100, s.rating + 1);
     }
   } else {
     s.consecutivePerfectDays = 0;
-  }
-
-  const d = runtime.DAYS_DATA[s.day];
-  const remainingQ = Math.max(0, (d.cargos || []).length - s.queueIndex);
-  if (SURGE_DAYS.has(s.day) && remainingQ >= GAME_CONFIG.SURGE_MAX_UNPROCESSED) {
-    addWarning('대기열 폭주 미처리 ' + remainingQ + '명 잔류');
-    caughtLogs.push('• [경고] 대기열 폭주 미처리 ' + remainingQ + '명');
   }
 
   const denied = s.dayReviewLog.filter(r => String(r.action || '').startsWith('압수')).length;
@@ -297,7 +315,7 @@ function resolveNightAudits() {
     allCorrect
   };
 
-  return { detectedCount, caughtLogs, streakRecovery, allCorrectBonus, allCorrect };
+  return { detectedCount, caughtLogs, streakRecovery, streakSRelief, allCorrectBonus, allCorrect, processedRatio };
 }
 
 export function openSettlement() {
@@ -306,7 +324,7 @@ export function openSettlement() {
   if (runtime.timers.clock) clearInterval(runtime.timers.clock);
 
   const sampleCount = s.dayAuditQueue.length;
-  const { detectedCount, caughtLogs, streakRecovery, allCorrectBonus } = resolveNightAudits();
+  const { detectedCount, caughtLogs, streakRecovery, streakSRelief, allCorrectBonus, processedRatio } = resolveNightAudits();
   const d = runtime.DAYS_DATA[s.day];
 
   const resBonus = (s.T >= GAME_CONFIG.RESISTANCE_TRUST_MIN && s.prevResPassed > 0)
@@ -317,7 +335,9 @@ export function openSettlement() {
   const redactProcessed = s.dayRedactedCount || 0;
   const normalProcessed = Math.max(0, s.dayProcessed - redactProcessed);
   const procPay = normalProcessed * GAME_CONFIG.PROC_PAY_NORMAL + redactProcessed * GAME_CONFIG.PROC_PAY_REDACT;
-  const diligence = s.rating >= GAME_CONFIG.DILIGENCE_RATING_MIN ? GAME_CONFIG.DILIGENCE_BONUS : 0;
+  // 보완 5: 성실 수당에도 최소 처리율(50%) 이중 잠금
+  const diligence = (s.rating >= GAME_CONFIG.DILIGENCE_RATING_MIN && processedRatio >= GAME_CONFIG.DILIGENCE_MIN_RATIO)
+    ? GAME_CONFIG.DILIGENCE_BONUS : 0;
   const income = Math.max(0, basePay + procPay + s.dayBonus + allCorrectBonus + diligence + resBonus - s.dayFines);
   s._settleIncome = income;
 
@@ -341,7 +361,7 @@ export function openSettlement() {
     + '<div class="settle-line"><span>처리 수당 (일반 ' + normalProcessed + '건 × ₵' + GAME_CONFIG.PROC_PAY_NORMAL + (redactProcessed > 0 ? (' · 먹칠 ' + redactProcessed + '건 × ₵' + GAME_CONFIG.PROC_PAY_REDACT) : '') + ')</span><span>₵' + procPay + '</span></div>'
     + (s.dayBonus > 0 ? '<div class="settle-line"><span>수정·급행·대조 보너스</span><span>+₵' + s.dayBonus + '</span></div>' : '')
     + (allCorrectBonus > 0 ? '<div class="settle-line"><span>무결점 전원 일치 보너스 (평정 +1)</span><span>+₵' + allCorrectBonus + '</span></div>' : '')
-    + (streakRecovery > 0 ? '<div class="settle-line"><span>연속 무경고 회복 (' + s.consecutivePerfectDays + '일 연속 · 의심 -2)</span><span>평정 +' + streakRecovery + '</span></div>' : '')
+    + (streakRecovery > 0 ? '<div class="settle-line"><span>연속 무경고 회복 (' + s.consecutivePerfectDays + '일 연속' + (streakSRelief > 0 ? (' · 의심 -' + streakSRelief) : '') + ')</span><span>평정 +' + streakRecovery + '</span></div>' : '')
     + (diligence > 0 ? '<div class="settle-line"><span>성실 수당 (평정 80↑)</span><span>+₵' + diligence + '</span></div>' : '')
     + (resBonus > 0 ? '<div class="settle-line"><span>레지스탕스 사례금</span><span>+₵' + resBonus + '</span></div>' : '')
     + '<div class="settle-line ' + (s.dayFines > 0 ? 'neg' : '') + '"><span>경고 ' + s.dayWarnings + '건 (감봉)</span><span>' + (s.dayFines > 0 ? '-₵' + s.dayFines : '₵0') + '</span></div>'
